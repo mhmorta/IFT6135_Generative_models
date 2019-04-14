@@ -5,6 +5,10 @@ from torch import nn, optim
 from torch.nn import functional as F
 
 
+class Flatten(nn.Module):
+    def forward(self, input):
+        return input.view(input.size(0), -1)
+
 class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
@@ -18,6 +22,7 @@ class VAE(nn.Module):
             nn.AvgPool2d(kernel_size = 2, stride = 2),
             nn.Conv2d(64, 256, kernel_size = (5, 5)),
             nn.ELU(),
+            Flatten(),
             nn.Linear(in_features = 256, out_features = 100)
         )
 
