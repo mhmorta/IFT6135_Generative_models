@@ -6,7 +6,7 @@ import torch.utils.data
 from torch import nn, optim
 from torchvision.utils import save_image
 from vae.model import VAE, loss_function
-from vae.dataloader import get_data_loader
+from vae.dataloader import binarized_mnist_data_loader
 
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
@@ -30,7 +30,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 model = VAE().to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-train_loader, valid_loader, test_loader = get_data_loader("binarized_mnist", 64)
+train_loader, valid_loader, test_loader = binarized_mnist_data_loader("binarized_mnist", 64)
 
 def train(epoch):
     model.train()
