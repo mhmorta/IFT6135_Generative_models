@@ -77,7 +77,7 @@ def test(epoch):
     model.eval()
     test_loss = 0
     with torch.no_grad():
-        for i, data in enumerate(test_loader):
+        for i, data in enumerate(valid_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
