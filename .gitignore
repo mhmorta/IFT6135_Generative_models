@@ -5,4 +5,4 @@ venv/
 .ipynb_checkpoints
 .csv#
 .vscode/
-
+vae/binarized_mnist/*
