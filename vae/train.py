@@ -10,7 +10,7 @@ from vae.dataloader import binarized_mnist_data_loader
 
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
-parser.add_argument('--batch-size', type=int, default=128, metavar='N',
+parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 128)')
 parser.add_argument('--epochs', type=int, default=10, metavar='N',
                     help='number of epochs to train (default: 10)')
@@ -36,7 +36,7 @@ def train(epoch):
     model.train()
     train_loss = 0
 
-    for batch_idx, (data, _) in enumerate(train_loader):
+    for batch_idx, data in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
@@ -58,7 +58,7 @@ def test(epoch):
     model.eval()
     test_loss = 0
     with torch.no_grad():
-        for i, (data, _) in enumerate(test_loader):
+        for i, data in enumerate(test_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
@@ -76,7 +76,7 @@ for epoch in range(1, args.epochs + 1):
     train(epoch)
     test(epoch)
     with torch.no_grad():
-        sample = torch.randn(64, 20).to(device)
+        sample = torch.randn(args.batch_size, 20).to(device)
         sample = model.decode(sample).cpu()
-        save_image(sample.view(64, 1, 28, 28),
+        save_image(sample.view(args.batch_size, 1, 28, 28),
                    'results/sample_' + str(epoch) + '.png')
