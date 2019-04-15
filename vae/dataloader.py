@@ -5,6 +5,8 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
+MNIST_IMAGE_SIZE = 28
+
 def binarized_mnist_data_loader(dataset_location, batch_size):
     URL = "http://www.cs.toronto.edu/~larocheh/public/datasets/binarized_mnist/"
     def lines_to_np_array(lines):
@@ -17,7 +19,7 @@ def binarized_mnist_data_loader(dataset_location, batch_size):
         with open(filepath) as f:
             lines = f.readlines()
         x = lines_to_np_array(lines).astype('float32')
-        x = x.reshape(x.shape[0], 1, 28, 28)
+        x = x.reshape(x.shape[0], 1, MNIST_IMAGE_SIZE, MNIST_IMAGE_SIZE)
         dataset_loader = data_utils.DataLoader(x, batch_size=batch_size, shuffle=splitname == "train")
         splitdata.append(dataset_loader)
     return splitdata
