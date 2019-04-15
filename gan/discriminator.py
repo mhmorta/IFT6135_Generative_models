@@ -11,8 +11,7 @@ import samplers as samplers
 
 cuda = torch.cuda.is_available();
 
-thetas = np.array(range(-10, 11))/10
-D_real = next(samplers.distribution1(0, 512))
+# D_real = next(samplers.distribution1(0, 512))
 
 X_dim = 2
 h_dim = 64
@@ -39,65 +38,93 @@ optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
 #  the criterion should be defined as it is asked in 1.1 and also 1.2, so two functions
 # Discriminator loss
 
-def move_to_cuda(arg):
-	if torch.cuda.is_available():
-		return arg.cuda()
-	return arg
+# def move_to_cuda(arg):
+# 	if torch.cuda.is_available():
+# 		return arg.cuda()
+# 	return arg
 
 
-# ones_label = Variable(torch.ones(512, 1), requires_grad=False)
-# zeros_label = Variable(torch.zeros(512, 1), requires_grad=False)
-ones_label = torch.ones(1)
-zeros_label = torch.zeros(1)
+ones_label = torch.ones(512, 1)
+zeros_label = torch.zeros(512, 1)
 if cuda:
 	ones_label = ones_label.cuda()
 	zeros_label = zeros_label.cuda()
-def JSD(D_x, D_y):
-	D_loss_real = F.binary_cross_entropy(D_x, ones_label)
-	D_loss_fake = F.binary_cross_entropy(D_y, zeros_label)
+def JSD(D_x, x_target, D_y, y_target):
+	
+	D_loss_real = torch.mean(torch.log(D_x))
+	D_loss_fake = torch.mean(torch.log(1-D_y))
 	if cuda:
 		D_loss_real = D_loss_real.cuda()
 		D_loss_fake = D_loss_fake.cuda()
 
-	D_loss = torch.from_numpy(np.log(2)) + 0.5 * (D_loss_real + D_loss_fake)
-	return D_loss
+	# torch.log
+	D_loss = torch.from_numpy(np.array([np.log(2)])).cuda().float() + 0.5 * (D_loss_real + D_loss_fake)
+	return -D_loss
 
 # WD = torch.mean()
 
 
 def train():
 	losses = []
+	thetas = np.array(range(-10, 11))/10
+	for i in range(21):
+		if cuda:
+			Discriminator = Net().cuda()
+		else:
+			Discriminator = Net()
 
-	for i in range(1):
-		D_fake = next(samplers.distribution1(thetas[10], 512))
-		print
+		optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
 
-		for e in range(100):
-			X = Variable(torch.from_numpy(D_real).float(), requires_grad=True)
-			Y = Variable(torch.from_numpy(D_fake).float(),requires_grad=True)
-			if cuda:
-				X = X.cuda()
-				Y = Y.cuda()
-			# print(X[:10])
-			# print()
-			# print(Y[:10])
+		print(thetas[i])
+		D_real = next(samplers.distribution1(0, 512))
+		# print
 
+		X = torch.from_numpy(D_real).float()
+		Y = torch.from_numpy(D_real).float()
+		Y[:,0] = thetas[i]
+		if cuda:
+			X = X.cuda()
+			Y = Y.cuda()
+		
+		#  training stage
+		for e in range(50000):
 			O_real = Discriminator(X)
 			O_fake = Discriminator(Y)
-			# print(O_fake[:10])
+
 			optimizer.zero_grad()
 
-			loss = JSD(O_real,O_fake)
+			if (thetas[i] != 0):
+				loss = JSD(O_real, ones_label, O_fake, zeros_label)
+			else:
+				loss = JSD(O_real, ones_label, O_fake, ones_label)
 
-			losses.append(loss)
- 	 		
+			if ( e%5000 == True):
+				print(loss)
+
 			loss.backward()
 			optimizer.step()
-			print (loss.data)
+
+		# testing the values
+		O_real = Discriminator(X)
+		O_fake = Discriminator(Y)
+
+		if (thetas[i] != 0):
+			loss = JSD(O_real, ones_label, O_fake, zeros_label)
+		else:
+			loss = JSD(O_real, ones_label, O_fake, ones_label)
+		print (-loss.data)
+		losses.append(loss)
+	# print(losses)
+	print ('Done...')
 
 
-# train()
-print(JSD(torch.tensor([0]).float(), torch.tensor([0])).float())
+
+
+train()
+
+# X = torch.ones((512,1)).cuda()
+# Y = torch.zeros((512,1)).cuda()
+# print(JSD(X,Y))
 
 
 
