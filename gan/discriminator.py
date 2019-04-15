@@ -9,6 +9,8 @@ import samplers as samplers
 # a = np.randn.uniform(0, 1)
 ## the data also come form the distribution
 
+cuda = torch.cuda.is_available();
+
 thetas = np.array(range(-10, 11))/10
 D_real = next(samplers.distribution1(0, 512))
 
@@ -27,20 +29,37 @@ class Net(nn.Module):
     def forward(self, x):
         return self.D(x)
 
-Discriminator = Net().cuda()
+if cuda:
+	Discriminator = Net().cuda()
+else:
+	Discriminator = Net()
 
 optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
 
 #  the criterion should be defined as it is asked in 1.1 and also 1.2, so two functions
 # Discriminator loss
 
-ones_label = Variable(torch.ones(512, 1), requires_grad=False).cuda()
-zeros_label = Variable(torch.zeros(512, 1), requires_grad=False).cuda()
+def move_to_cuda(arg):
+	if torch.cuda.is_available():
+		return arg.cuda()
+	return arg
+
+
+# ones_label = Variable(torch.ones(512, 1), requires_grad=False)
+# zeros_label = Variable(torch.zeros(512, 1), requires_grad=False)
+ones_label = torch.ones(1)
+zeros_label = torch.zeros(1)
+if cuda:
+	ones_label = ones_label.cuda()
+	zeros_label = zeros_label.cuda()
 def JSD(D_x, D_y):
-	D_loss_real = F.binary_cross_entropy(D_x, ones_label).cuda()
-	D_loss_fake = F.binary_cross_entropy(D_y, zeros_label).cuda()
-	D_loss = np.log(2) + 0.5 * (D_loss_real + D_loss_fake)
-	print
+	D_loss_real = F.binary_cross_entropy(D_x, ones_label)
+	D_loss_fake = F.binary_cross_entropy(D_y, zeros_label)
+	if cuda:
+		D_loss_real = D_loss_real.cuda()
+		D_loss_fake = D_loss_fake.cuda()
+
+	D_loss = torch.from_numpy(np.log(2)) + 0.5 * (D_loss_real + D_loss_fake)
 	return D_loss
 
 # WD = torch.mean()
@@ -54,8 +73,11 @@ def train():
 		print
 
 		for e in range(100):
-			X = Variable(torch.from_numpy(D_real).float(), requires_grad=True).cuda()
-			Y = Variable(torch.from_numpy(D_fake).float(),requires_grad=True).cuda()
+			X = Variable(torch.from_numpy(D_real).float(), requires_grad=True)
+			Y = Variable(torch.from_numpy(D_fake).float(),requires_grad=True)
+			if cuda:
+				X = X.cuda()
+				Y = Y.cuda()
 			# print(X[:10])
 			# print()
 			# print(Y[:10])
@@ -74,7 +96,8 @@ def train():
 			print (loss.data)
 
 
-train()
+# train()
+print(JSD(torch.tensor([0]).float(), torch.tensor([0])).float())
 
 
 
