@@ -8,6 +8,7 @@ from torchvision.utils import save_image
 from vae.model import VAE
 from vae.dataloader import binarized_mnist_data_loader, MNIST_IMAGE_SIZE
 from torch.nn import functional as F
+import os
 
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
@@ -34,7 +35,11 @@ model = VAE(args.hidden_features).to(device)
 
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-train_loader, valid_loader, test_loader = binarized_mnist_data_loader("binarized_mnist", args.batch_size)
+current_dir = os.path.dirname(os.path.realpath(__file__))
+results_dir = '{}/results'.format(current_dir)
+
+train_loader, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), args.batch_size)
+
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
@@ -77,6 +82,8 @@ def train(epoch):
 def validate(epoch):
     model.eval()
     test_loss = 0
+
+
     with torch.no_grad():
         for i, data in enumerate(valid_loader):
             data = data.to(device)
@@ -86,7 +93,7 @@ def validate(epoch):
                 n = min(data.size(0), 8)
                 comparison = torch.cat([data[:n], recon_batch.view(args.batch_size, 1, MNIST_IMAGE_SIZE, MNIST_IMAGE_SIZE)[:n]])
                 save_image(comparison.cpu(),
-                         'results/reconstruction_' + str(epoch) + '.png', nrow=n)
+                         '{}/reconstruction_{}.png'.format(results_dir, epoch), nrow=n)
 
     test_loss /= len(valid_loader.dataset)
     print('====> Validation set loss: {:.4f}'.format(test_loss))
@@ -111,7 +118,8 @@ def sample(epoch):
         sample = torch.randn(args.batch_size, args.hidden_features).to(device)
         sample = model.decode(sample).cpu()
         save_image(sample.view(args.batch_size, 1, MNIST_IMAGE_SIZE, MNIST_IMAGE_SIZE),
-                   'results/sample_' + str(epoch) + '.png')
+                   '{}/sample_{}.png'.format(results_dir, epoch))
+
 
 for epoch in range(1, args.epochs + 1):
     train(epoch)
