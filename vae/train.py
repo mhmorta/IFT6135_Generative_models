@@ -35,9 +35,11 @@ model = VAE(args.hidden_features).to(device)
 
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-train_loader, valid_loader, test_loader = binarized_mnist_data_loader("binarized_mnist", args.batch_size)
+current_dir = os.path.dirname(os.path.realpath(__file__))
+results_dir = '{}/results'.format(current_dir)
 
-results_dir = '{}/results'.format(os.path.dirname(os.path.realpath(__file__)))
+train_loader, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), args.batch_size)
+
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
