@@ -11,8 +11,6 @@ import samplers as samplers
 
 cuda = torch.cuda.is_available();
 
-# D_real = next(samplers.distribution1(0, 512))
-
 X_dim = 2
 h_dim = 64
 
@@ -38,19 +36,7 @@ optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
 #  the criterion should be defined as it is asked in 1.1 and also 1.2, so two functions
 # Discriminator loss
 
-# def move_to_cuda(arg):
-# 	if torch.cuda.is_available():
-# 		return arg.cuda()
-# 	return arg
-
-
-ones_label = torch.ones(512, 1)
-zeros_label = torch.zeros(512, 1)
-if cuda:
-	ones_label = ones_label.cuda()
-	zeros_label = zeros_label.cuda()
-def JSD(D_x, x_target, D_y, y_target):
-	
+def JSD(D_x, D_y):
 	D_loss_real = torch.mean(torch.log(D_x))
 	D_loss_fake = torch.mean(torch.log(1-D_y))
 	if cuda:
@@ -93,13 +79,10 @@ def train():
 
 			optimizer.zero_grad()
 
-			if (thetas[i] != 0):
-				loss = JSD(O_real, ones_label, O_fake, zeros_label)
-			else:
-				loss = JSD(O_real, ones_label, O_fake, ones_label)
+			loss = JSD(O_real, O_fake)
 
-			if ( e%5000 == True):
-				print(loss)
+			if ( e%10000 == True):
+				print(-loss.data)
 
 			loss.backward()
 			optimizer.step()
@@ -108,10 +91,8 @@ def train():
 		O_real = Discriminator(X)
 		O_fake = Discriminator(Y)
 
-		if (thetas[i] != 0):
-			loss = JSD(O_real, ones_label, O_fake, zeros_label)
-		else:
-			loss = JSD(O_real, ones_label, O_fake, ones_label)
+		loss = JSD(O_real, O_fake)
+
 		print (-loss.data)
 		losses.append(loss)
 	# print(losses)
@@ -121,10 +102,6 @@ def train():
 
 
 train()
-
-# X = torch.ones((512,1)).cuda()
-# Y = torch.zeros((512,1)).cuda()
-# print(JSD(X,Y))
 
 
 
