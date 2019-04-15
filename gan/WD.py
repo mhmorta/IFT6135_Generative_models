@@ -4,16 +4,13 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.autograd import grad as torch_grad
 import samplers as samplers
 
 
-
-cuda = torch.cuda.is_available();
 ## wasserstein distance setting
 a = np.random.uniform(0, 1)
 lam = 10
-losses = {'G': [], 'D': [], 'GP': [],'gradient_norm': []}
+
 
 ## the data also come form the distribution
 thetas = np.array(range(-10, 11))/10
@@ -34,10 +31,7 @@ class Net(nn.Module):
     def forward(self, x):
         return self.D(x)
 
-if cuda:
-	Discriminator = Net().cuda()
-else:
-	Discriminator = Net()
+Discriminator = Net().cuda()
 
 optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
 
@@ -60,63 +54,72 @@ def WD(D_x, D_y, X, Y):
 	D_loss_fake = torch.mean(D_y)
 	regularizer = gradient_penalty(X, Y)
 	D_loss = (D_loss_real - D_loss_fake) + lam * (regularizer)
-	return D_loss
+	return
 
 def gradient_penalty(X, Y):
 	batch_size = X.size()[0]
 	z = a * X + (1-a) * Y
 	z = Variable(z, requires_grad= True)
 
-	prob_z = Discriminator(z)
+	prob_z = self.Discriminator(z)
 
 	# Calculate gradients of probabilities with respect to examples
-	gradients = torch_grad(outputs=prob_z, inputs=z, grad_outputs=torch.ones(prob_z.size()).cuda() if cuda else torch.ones(
-						   prob_z.size()),
-    					   create_graph=True, retain_graph=True)[0]
-	gradients = gradients.view(batch_size, -1)
-	gardient_pen = ((gradients.norm(2, dim=1) -1)**2).mean()
-	# losses['gradient_norm'].append(gardient_pen.data[0])
-	# losses['gradient_norm'].append(gradients.norm(2, dim=1).mean().data[0])
-	# Derivatives of the gradient close to 0 can cause problems because of
-	# the square root, so manually calculate norm
-	# gradients_norm = torch.sqrt(gradients ** 2, dim=1)
+	gradients = torch_grad(outputs=prob_z, inputs=z, grad_outputs=torch.ones(prob_z.size()).cuda() if self.use_cuda else torch.ones(prob_z.size()),
+    	create_graph=True, retain_graph=True)[0]
+
+    gradients = gradients.view(batch_size, -1)
+    self.losses['gradient_norm'].append(gradients.norm(2, dim=1).mean().data[0])
+
+    # Derivatives of the gradient close to 0 can cause problems because of
+    # the square root, so manually calculate norm and add epsilon
+    gradients_norm = torch.sqrt(gradients ** 2, dim=1)
 
     # Return gradient penalty
-    # ((gradients_norm - 1) ** 2).mean()
-	return gardient_pen
+	return lam * ((gradients_norm - 1) ** 2).mean()
 
 def train():
-	
+	# self.losses = {'G': [], 'D': [], 'GP': [],'gradient_norm': []}
+	losses = []
 
-	for i in range(21):
-		if cuda:
-			Discriminator = Net().cuda()
-		else:
-			Discriminator = Net()
-		X = torch.from_numpy(D_real).float()
-		Y = torch.from_numpy(D_real).float()
-		Y[:, 0] = thetas[i]
+	for i in range(1):
+		D_fake = samplers.distribution1(thetas[0], 512)
 
-		if cuda:
-			X = X.cuda()
-			Y = Y.cuda()
+		for e in range(100):
+			X = Variable(torch.from_numpy(next(D_real)).float()).cuda()
+			Y = Variable(torch.from_numpy(next(D_fake)).float()).cuda(
 
-		for e in range(50000):
+
 			O_real = Discriminator(X)
 			O_fake = Discriminator(Y)
+			
+			loss_JSD = JSD(O_real,O_fake)
+			# loss_WD = WD(O_real, O_fake, X, Y)
+
+			losses.append(loss_JSD)
+			loss_JSD.backward()
+		D_fake = next(samplers.distribution1(thetas[10], 512))
+		print
+
+		for e in range(100):
+			X = Variable(torch.from_numpy(D_real).float(), requires_grad=True).cuda()
+			Y = Variable(torch.from_numpy(D_fake).float(),requires_grad=True).cuda()
+			# print(X[:10])
+			# print()
+			# print(Y[:10])
+
+			O_real = Discriminator(X)
+			O_fake = Discriminator(Y)
+			# print(O_fake[:10])
 			optimizer.zero_grad()
 
-			loss_WD = WD(O_real, O_fake, X, Y)
-
-			if (e%10000 ==True):
-				print (loss_WD.data)
-
-			loss_WD.backward()
+			# losses.append(loss_WD)
+			# loss_WD.backward()
 
 			optimizer.step()
-			losses['D'].append(loss_WD)
+			optimizer.zero_grad()
+			# print (loss_WD)
 
-
+			print (loss.data)
 
 
 train()

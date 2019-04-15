@@ -7,3 +7,4 @@ venv/
 .vscode/
 vae/binarized_mnist/*
 vae/results/*.png
+q3/data
