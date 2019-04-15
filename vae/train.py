@@ -73,11 +73,12 @@ def train(epoch):
           epoch, train_loss / len(train_loader.dataset)))
 
 
-def test(epoch):
+
+def validate(epoch):
     model.eval()
     test_loss = 0
     with torch.no_grad():
-        for i, data in enumerate(test_loader):
+        for i, data in enumerate(valid_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
@@ -87,15 +88,34 @@ def test(epoch):
                 save_image(comparison.cpu(),
                          'results/reconstruction_' + str(epoch) + '.png', nrow=n)
 
+    test_loss /= len(valid_loader.dataset)
+    print('====> Validation set loss: {:.4f}'.format(test_loss))
+
+
+def test():
+    model.eval()
+    test_loss = 0
+    with torch.no_grad():
+        for i, data in enumerate(test_loader):
+            data = data.to(device)
+            recon_batch, mu, logvar = model(data)
+            test_loss += loss_function(recon_batch, data, mu, logvar).item()
+
+
     test_loss /= len(test_loader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
 
-for epoch in range(1, args.epochs + 1):
-    train(epoch)
-    test(epoch)
+def sample(epoch):
     with torch.no_grad():
         sample = torch.randn(args.batch_size, args.hidden_features).to(device)
         sample = model.decode(sample).cpu()
         save_image(sample.view(args.batch_size, 1, MNIST_IMAGE_SIZE, MNIST_IMAGE_SIZE),
                    'results/sample_' + str(epoch) + '.png')
+
+for epoch in range(1, args.epochs + 1):
+    train(epoch)
+    validate(epoch)
+    sample(epoch)
+
+test()
