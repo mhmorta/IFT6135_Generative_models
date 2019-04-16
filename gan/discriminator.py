@@ -86,8 +86,6 @@ def gradient_penalty(X, Y):
 	return gardient_pen
 
 def train():
-	
-
 	for i in range(21):
 		if cuda:
 			Discriminator = Net().cuda()
