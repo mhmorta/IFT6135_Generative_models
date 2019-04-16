@@ -13,9 +13,8 @@ import samplers as samplers
 cuda = torch.cuda.is_available();
 
 X_dim = 2
-h_dim = 64
+h_dim = 128
 
-a = np.random.uniform(0, 1)
 
 class Net(nn.Module):
     def __init__(self):
@@ -23,8 +22,8 @@ class Net(nn.Module):
         self.D = torch.nn.Sequential(
 			    torch.nn.Linear(X_dim, h_dim),
 			    torch.nn.ReLU(),
-			    # torch.nn.Linear(X_dim, h_dim),
-			    # torch.nn.ReLU(),
+			    torch.nn.Linear(h_dim, h_dim),
+			    torch.nn.ReLU(),
 			    torch.nn.Linear(h_dim, 1),
 			    torch.nn.Sigmoid()
 			)
@@ -114,6 +113,7 @@ def WD(D_x, D_y, X, Y):
 
 def gradient_penalty(X, Y):
 	batch_size = X.size()[0]
+	a = np.random.uniform(0, 1)
 	z = a * X + (1-a) * Y
 	z = Variable(z, requires_grad= True)
 
@@ -124,10 +124,10 @@ def gradient_penalty(X, Y):
 						   prob_z.size()),
     					   create_graph=True, retain_graph=True)[0]
 	gradients = gradients.view(batch_size, -1)
-	# gradients = gradients.norm(2, dim=1)
-	gradients = torch.sqrt(gradients ** 2)
-	gradients = gradients - 1
-	gradients = gradients **2
+	gradients = gradients.norm(2, dim=1)
+	# gradients = torch.sqrt(gradients ** 2)
+	# gradients = gradients - 1
+	# gradients = gradients **2
 	# print(gradients)
 	return (gradients).mean()
 
@@ -163,7 +163,7 @@ def train_WD():
 			loss = WD(O_real, O_fake, X, Y)
 
 			if ( e%1000 == True):
-				print(loss.data)
+				print(-loss.data)
 
 			loss.backward()
 			optimizer.step()
@@ -174,7 +174,7 @@ def train_WD():
 
 		loss = WD(O_real, O_fake, X, Y)
 
-		print (loss.data)
+		print (-loss.data)
 		losses.append(loss)
 	# print(losses)
 	print ('Done...')
