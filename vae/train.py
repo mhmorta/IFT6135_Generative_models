@@ -46,7 +46,7 @@ def loss_function(recon_x, x, mu, logvar):
     # fidelity loss
     # https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=608
     # todo reduce_sum or reduce_mean? https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=739
-    BCE = F.binary_cross_entropy(recon_x, x)
+    BCE = F.binary_cross_entropy(recon_x, x, reduction='sum')
 
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
