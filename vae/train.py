@@ -55,7 +55,8 @@ def loss_function(recon_x, x, mu, logvar):
 
     # TODO confirm if we do need this?
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    return BCE + KLD
+    return torch.mean(BCE + KLD)
+
 
 def train(epoch):
     model.train()
@@ -79,11 +80,9 @@ def train(epoch):
           epoch, train_loss / len(train_loader.dataset)))
 
 
-
 def validate(epoch):
     model.eval()
     test_loss = 0
-
 
     with torch.no_grad():
         for i, data in enumerate(valid_loader):
