@@ -43,7 +43,7 @@ train_loader, valid_loader, test_loader = binarized_mnist_data_loader('{}/binari
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, MNIST_IMAGE_SIZE * MNIST_IMAGE_SIZE), reduction='sum')
+    BCE = F.binary_cross_entropy(recon_x, x, reduction='sum')
 
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014

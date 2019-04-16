@@ -12,6 +12,19 @@ class UnFlatten(nn.Module):
     def forward(self, input, size=256):
         return input.view(input.size(0), size, 1, 1)
 
+
+# source: https://discuss.pytorch.org/t/using-nn-function-interpolate-inside-nn-sequential/23588
+class Interpolate(nn.Module):
+    def __init__(self, scale_factor):
+        super(Interpolate, self).__init__()
+        self.interp = nn.functional.interpolate
+        self.scale_factor = scale_factor
+
+    def forward(self, x):
+        x = self.interp(x, scale_factor=self.scale_factor, mode='bilinear')
+        return x
+
+
 class VAE(nn.Module):
     def __init__(self, hidden_features=100):
         super(VAE, self).__init__()
@@ -20,16 +33,16 @@ class VAE(nn.Module):
             nn.Conv2d(1, 32, kernel_size=(3, 3)),
             nn.ELU(),
             nn.AvgPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(32, 64, kernel_size = (3, 3)),
+            nn.Conv2d(32, 64, kernel_size=(3, 3)),
             nn.ELU(),
-            nn.AvgPool2d(kernel_size = 2, stride = 2),
-            nn.Conv2d(64, 256, kernel_size = (5, 5)),
+            nn.AvgPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(64, 256, kernel_size=(5, 5)),
             nn.ELU(),
             Flatten()
         )
 
-        self.encoder_mean = nn.Linear(in_features = 256, out_features = hidden_features)
-        self.encoder_logvar = nn.Linear(in_features = 256, out_features = hidden_features)
+        self.encoder_mean = nn.Linear(in_features=256, out_features = hidden_features)
+        self.encoder_logvar = nn.Linear(in_features=256, out_features = hidden_features)
 
         self.decoder = nn.Sequential(
             nn.Linear(in_features = hidden_features, out_features = 256),
@@ -37,10 +50,10 @@ class VAE(nn.Module):
             UnFlatten(),
             nn.Conv2d(256, 64, kernel_size = (5, 5), padding = (4, 4)),
             nn.ELU(),
-            nn.UpsamplingBilinear2d(scale_factor = 2),
+            Interpolate(scale_factor = 2),
             nn.Conv2d(64, 32, kernel_size = (3, 3), padding = (2, 2)),
             nn.ELU(),
-            nn.UpsamplingBilinear2d(scale_factor = 2),
+            Interpolate(scale_factor = 2),
             nn.Conv2d(32, 16, kernel_size = (3, 3), padding = (2, 2)),
             nn.ELU(),
             nn.Conv2d(16, 1, kernel_size = (3, 3), padding = (2, 2))
