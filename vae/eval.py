@@ -13,7 +13,6 @@ def compute_samples(data, num_samples, debug=False):
     """ Sample from importance distribution z_samples ~ q(z|X) and
         compute p(z_samples), q(z_samples) for importance sampling
     """
-    model.eval()
     recon_batch, z_mean, z_log_sigma = model(data)
 
     z_samples = []
@@ -103,5 +102,8 @@ def estimate_logpx_batch(data, num_samples, debug=False):
 
     return np.array(result)
 
-estimate_logpx_batch(X, num_samples=128, debug=True)
-# pass
+
+model.eval()
+model.load_state_dict(torch.load('saved_model/params_epoch_9_loss_98.7259.pt', map_location=device))
+ret = estimate_logpx_batch(X, num_samples=128, debug=False)
+print('log(x): ', ret)
