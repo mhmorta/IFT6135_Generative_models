@@ -14,6 +14,8 @@ import os
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 128)')
+parser.add_argument('--max-batch-idx', type=int, default=99999, metavar='N',
+                    help='only for debugging locally')
 parser.add_argument('--hidden-features', type=int, default=100, metavar='N',
                     help='latent variable size')
 parser.add_argument('--epochs', type=int, default=10, metavar='N',
@@ -37,6 +39,7 @@ optimizer = optim.Adam(model.parameters(), lr=30e-4)
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 results_dir = '{}/results'.format(current_dir)
+saved_model = '{}/saved_model'.format(current_dir)
 
 train_loader, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), args.batch_size)
 
@@ -53,6 +56,7 @@ def loss_function(recon_x, x, mu, logvar):
     # https://arxiv.org/abs/1312.6114
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    # todo if we change it to negative value adjust the saving best model logic in main
     return BCE + KLD
 
 
@@ -61,6 +65,8 @@ def train(epoch):
     train_loss = 0
 
     for batch_idx, data in enumerate(train_loader):
+        if batch_idx > args.max_batch_idx:
+            break
         data = data.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
@@ -95,6 +101,7 @@ def validate(epoch):
 
     test_loss /= len(valid_loader.dataset)
     print('====> Validation set loss: {:.4f}'.format(test_loss))
+    return test_loss
 
 
 def test():
@@ -105,7 +112,6 @@ def test():
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
-
 
     test_loss /= len(test_loader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
@@ -120,9 +126,17 @@ def sample(epoch):
                    '{}/sample_{}.png'.format(results_dir, epoch))
 
 
-for epoch in range(1, args.epochs + 1):
-    train(epoch)
-    validate(epoch)
-    sample(epoch)
+if __name__ == '__main__':
+    best_valid_loss = None
+    for epoch in range(1, args.epochs + 1):
+        train(epoch)
+        new_valid_loss = validate(epoch)
+        if best_valid_loss is None or new_valid_loss < best_valid_loss:
+            best_valid_loss = new_valid_loss
+            print('Saving model with avg loss {}'.format(best_valid_loss))
+            torch.save(model.state_dict(),
+                       os.path.join(saved_model, 'params_epoch_{}_loss_{:.4f}.pt'.format(epoch, best_valid_loss)))
 
-test()
+        sample(epoch)
+
+    test()
