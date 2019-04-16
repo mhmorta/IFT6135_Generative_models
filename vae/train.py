@@ -41,8 +41,6 @@ current_dir = os.path.dirname(os.path.realpath(__file__))
 results_dir = '{}/results'.format(current_dir)
 saved_model = '{}/saved_model'.format(current_dir)
 
-train_loader, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), args.batch_size)
-
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
@@ -127,6 +125,8 @@ def sample(epoch):
 
 
 if __name__ == '__main__':
+    train_loader, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir),
+                                                                          args.batch_size)
     best_valid_loss = None
     for epoch in range(1, args.epochs + 1):
         train(epoch)

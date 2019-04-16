@@ -27,7 +27,7 @@ class Interpolate(nn.Module):
 
 
 class VAE(nn.Module):
-    def __init__(self, hidden_features=100):
+    def __init__(self, hidden_features):
         super(VAE, self).__init__()
 
         self.encoder = nn.Sequential(
