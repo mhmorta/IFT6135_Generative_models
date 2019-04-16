@@ -1,0 +1,4 @@
+with mean (changeset: 74271148f3ae8d8ac07c7e4fcb0b98dd2ff82239)
+====> Epoch: 10 Average loss: 97.9130
+====> Validation set loss: 99.5437
+====> Test set loss: 98.6725

@@ -55,7 +55,7 @@ def loss_function(recon_x, x, mu, logvar):
 
     # TODO confirm if we do need this?
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    return torch.mean(BCE + KLD)
+    return BCE + KLD
 
 
 def train(epoch):
