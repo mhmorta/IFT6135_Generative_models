@@ -33,7 +33,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 
 model = VAE(args.hidden_features).to(device)
 
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+optimizer = optim.Adam(model.parameters(), lr=30e-4)
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 results_dir = '{}/results'.format(current_dir)
@@ -43,6 +43,9 @@ train_loader, valid_loader, test_loader = binarized_mnist_data_loader('{}/binari
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
+    # fidelity loss
+    # https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=608
+    # todo reduce_sum or reduce_mean? https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=739
     BCE = F.binary_cross_entropy(recon_x, x)
 
     # see Appendix B from VAE paper:
@@ -51,10 +54,8 @@ def loss_function(recon_x, x, mu, logvar):
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
 
     # TODO confirm if we do need this?
-    # KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    #return BCE + KLD
-
-    return BCE
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return BCE + KLD
 
 def train(epoch):
     model.train()
@@ -114,6 +115,7 @@ def test():
 
 
 def sample(epoch):
+    model.eval()
     with torch.no_grad():
         sample = torch.randn(args.batch_size, args.hidden_features).to(device)
         sample = model.decode(sample).cpu()
