@@ -2,6 +2,7 @@ from vae.train import current_dir, model, device
 from vae.dataloader import binarized_mnist_data_loader, MNIST_IMAGE_SIZE
 import numpy as np
 from scipy.stats import norm
+from scipy.special import logsumexp
 import torch
 
 
@@ -52,4 +53,55 @@ def compute_samples(data, num_samples, debug=False):
 
 # i put in here 10 examples from the valid_loader to save time because it takes too long to load
 X = torch.load('sample_input/X.pt')
-compute_samples(X, 4, debug=True)
+#compute_samples(X, 4, debug=True)
+
+
+def estimate_logpx_batch(data, num_samples, debug=False):
+    z_samples, pz, qz = compute_samples(data, num_samples)
+    z_samples = torch.from_numpy(z_samples).float()
+    assert len(z_samples) == len(data)
+    assert len(z_samples) == len(pz)
+    assert len(z_samples) == len(qz)
+
+    # Calculate importance sample
+    # \log p(x) = E_p[p(x|z)]
+    # = \log(\int p(x|z) p(z) dz)
+    # = \log(\int p(x|z) p(z) / q(z|x) q(z|x) dz)
+    # = E_q[p(x|z) p(z) / q(z|x)]
+    # ~= \log(1/n * \sum_i p(x|z_i) p(z_i)/q(z_i))
+    # = \log p(x) = \log(1/n * \sum_i e^{\log p(x|z_i) + \log p(z_i) - \log q(z_i)})
+    # = \log p(x) = -\logn + \logsumexp_i(\log p(x|z_i) + \log p(z_i) - \log q(z_i))
+    # See: scipy.special.logsumexp
+    result = []
+    for i in range(len(data)):
+        datum = data[i].reshape(784).detach().numpy()
+        x_predict = model.decode(z_samples[i]).reshape(-1, 784).detach().numpy()
+        x_predict = np.clip(x_predict, np.finfo(float).eps, 1. - np.finfo(float).eps)
+        p_vals = pz[i]
+        q_vals = qz[i]
+
+        # \log p(x|z) = Binary cross entropy
+        logp_xz = np.sum(datum * np.log(x_predict) + (1. - datum) * np.log(1.0 - x_predict), axis=-1)
+        logpz = np.sum(np.log(p_vals), axis=-1)
+        logqz = np.sum(np.log(q_vals), axis=-1)
+        argsum = logp_xz + logpz - logqz
+        logpx = -np.log(num_samples) + logsumexp(argsum)
+        result.append(logpx)
+
+        if debug:
+            print(x_predict.shape)
+            print(p_vals.shape)
+            print(q_vals.shape)
+            print(logp_xz.shape)
+            print(logpz.shape)
+            print(logqz.shape)
+            print("logp_xz", logp_xz)
+            print("logpz", logpz)
+            print("logqz", logqz)
+            print(argsum.shape)
+            print("logpx", logpx)
+
+    return np.array(result)
+
+estimate_logpx_batch(X, num_samples=128, debug=True)
+# pass
