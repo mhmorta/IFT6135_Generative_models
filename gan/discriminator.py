@@ -59,7 +59,7 @@ def WD(D_x, D_y, X, Y):
 	D_loss_real = torch.mean(D_x)
 	D_loss_fake = torch.mean(D_y)
 	regularizer = gradient_penalty(X, Y)
-	D_loss = (D_loss_real - D_loss_fake) + lam * (regularizer)
+	D_loss = (D_loss_real - D_loss_fake) - lam * (regularizer)
 	return D_loss
 
 def gradient_penalty(X, Y):
@@ -109,14 +109,12 @@ def train():
 			loss_WD = WD(O_real, O_fake, X, Y)
 
 			if (e%10000 ==True):
-				print (loss_WD.data)
+				print (-loss_WD.data)
 
 			loss_WD.backward()
 
 			optimizer.step()
 			losses['D'].append(loss_WD)
-
-
 
 
 train()
