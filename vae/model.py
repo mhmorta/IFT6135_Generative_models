@@ -8,6 +8,7 @@ class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
 
+
 class UnFlatten(nn.Module):
     def forward(self, input, size=256):
         return input.view(input.size(0), size, 1, 1)
@@ -50,10 +51,10 @@ class VAE(nn.Module):
             UnFlatten(),
             nn.Conv2d(256, 64, kernel_size = (5, 5), padding = (4, 4)),
             nn.ELU(),
-            Interpolate(scale_factor = 2),
+            nn.UpsamplingBilinear2d(scale_factor=2),
             nn.Conv2d(64, 32, kernel_size = (3, 3), padding = (2, 2)),
             nn.ELU(),
-            Interpolate(scale_factor = 2),
+            nn.UpsamplingBilinear2d(scale_factor = 2),
             nn.Conv2d(32, 16, kernel_size = (3, 3), padding = (2, 2)),
             nn.ELU(),
             nn.Conv2d(16, 1, kernel_size = (3, 3), padding = (2, 2))

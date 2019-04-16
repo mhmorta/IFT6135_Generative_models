@@ -7,3 +7,10 @@ without mean (changeset: 0dcd431c124e1c72522470832910870e4b8719b8)
 ====> Epoch: 10 Average loss: 97.9371
 ====> Validation set loss: 99.2642
 ====> Test set loss: 98.3924
+
+binary cross-entropy on a view(recon_x.view(args.batch_size, -1), x.view(args.batch_size, -1))
+(changeset: 7c993a4d4750824338d25aaf84ac4e6d1510d6d6)
+====> Epoch: 10 Average loss: 97.9238
+====> Validation set loss: 99.8451
+====> Test set loss: 98.9867
+
