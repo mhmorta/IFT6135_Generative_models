@@ -29,10 +29,6 @@ class Net(nn.Module):
     def forward(self, x):
         return self.D(x)
 
-if cuda:
-	Discriminator = Net().cuda()
-else:
-	Discriminator = Net()
 #  the criterion should be defined as it is asked in 1.1 and also 1.2, so two functions
 # Discriminator loss
 
@@ -69,7 +65,7 @@ def train_JSD():
 
 		X = torch.from_numpy(D_real).float()
 		Y = torch.from_numpy(D_fake).float()
-		
+
 		if cuda:
 			X = X.cuda()
 			Y = Y.cuda()
