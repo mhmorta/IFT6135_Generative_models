@@ -118,10 +118,8 @@ def train_WD():
 	print ('Done...')
 
 	plt.figure()
-	plt.figure(figsize=(8,4))
-	plt.subplot(1,2,1)
 	plt.plot(thetas,losses)
-	plt.title(r'$D(x)$')
+	plt.title('Wasserstein GAN')
 	plt.savefig('Wasserstein_D.png')
 	plt.close()
 
