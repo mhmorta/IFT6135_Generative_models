@@ -7,8 +7,6 @@ import torch.optim as optim
 from torch.autograd import grad as torch_grad
 import samplers as samplers
 
-
-
 cuda = torch.cuda.is_available();
 ## wasserstein distance setting
 a = np.random.uniform(0, 1)
@@ -74,16 +72,7 @@ def gradient_penalty(X, Y):
 						   prob_z.size()),
     					   create_graph=True, retain_graph=True)[0]
 	gradients = gradients.view(batch_size, -1)
-	gardient_pen = ((gradients.norm(2, dim=1) -1)**2).mean()
-	# losses['gradient_norm'].append(gardient_pen.data[0])
-	# losses['gradient_norm'].append(gradients.norm(2, dim=1).mean().data[0])
-	# Derivatives of the gradient close to 0 can cause problems because of
-	# the square root, so manually calculate norm
-	# gradients_norm = torch.sqrt(gradients ** 2, dim=1)
-
-    # Return gradient penalty
-    # ((gradients_norm - 1) ** 2).mean()
-	return gardient_pen
+	return ((gradients.norm(2, dim=1) -1)**2).mean()
 
 def train():
 	for i in range(21):
