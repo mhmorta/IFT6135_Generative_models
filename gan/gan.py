@@ -48,7 +48,6 @@ def GAN(D_x, D_y):
 def train():
 	losses = []
 
-
 	for e in range(100000):
 		X = torch.from_numpy(f_0).float()
 		Y = torch.from_numpy(f_1).float()
