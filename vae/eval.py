@@ -13,7 +13,7 @@ def compute_samples(data, num_samples, debug=False):
     """ Sample from importance distribution z_samples ~ q(z|X) and
         compute p(z_samples), q(z_samples) for importance sampling
     """
-    recon_batch, z_mean, z_log_sigma = model(data)
+    z_mean, z_log_sigma = model.encode(data)
 
     z_samples = []
     qz = []

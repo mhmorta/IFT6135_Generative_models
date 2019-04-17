@@ -14,3 +14,10 @@ binary cross-entropy on a view(recon_x.view(args.batch_size, -1), x.view(args.ba
 ====> Validation set loss: 99.8451
 ====> Test set loss: 98.9867
 
+changeset
+Train Epoch: 20 [49920/50000 (100%)]	Loss: 97.255493
+====> Epoch: 20 Average loss: 93.7027
+====> Average Validation loss: 94.4305
+Saving model with avg loss 94.43049213867188
+====> Average Test loss: 93.7825
+
