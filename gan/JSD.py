@@ -15,7 +15,6 @@ cuda = torch.cuda.is_available();
 X_dim = 2
 h_dim = 256
 
-
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -54,6 +53,7 @@ def JSD(D_x, D_y):
 def train_JSD():
 	losses = []
 	thetas = np.array(range(-10, 11))/10
+	D_real = next(samplers.distribution1(0, 512))
 	for i in range(21):
 		if cuda:
 			Discriminator = Net().cuda()
@@ -63,12 +63,13 @@ def train_JSD():
 		optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
 
 		print(thetas[i])
-		D_real = next(samplers.distribution1(0, 512))
+		
+		D_fake = next(samplers.distribution1(thetas[i], 512))
 		# print
 
 		X = torch.from_numpy(D_real).float()
-		Y = torch.from_numpy(D_real).float()
-		Y[:,0] = thetas[i]
+		Y = torch.from_numpy(D_fake).float()
+		
 		if cuda:
 			X = X.cuda()
 			Y = Y.cuda()

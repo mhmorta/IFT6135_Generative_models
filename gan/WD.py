@@ -13,7 +13,7 @@ import samplers as samplers
 cuda = torch.cuda.is_available();
 
 X_dim = 2
-h_dim = 128
+h_dim = 64
 
 class Net(nn.Module):
     def __init__(self):
@@ -21,11 +21,18 @@ class Net(nn.Module):
         self.D = torch.nn.Sequential(
 			    torch.nn.Linear(X_dim, h_dim),
 			    torch.nn.ReLU(),
-			    # torch.nn.Linear(h_dim, h_dim),
-			    # torch.nn.ReLU(),
+			    torch.nn.Linear(h_dim, h_dim),
+			    torch.nn.ReLU(),
 			    torch.nn.Linear(h_dim, 1),
-			    # torch.nn.Sigmoid()
 			)
+        self.D.apply(self.init_weights)	
+
+    def init_weights(self, m):
+        if type(m) == nn.Linear:
+            nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            m.bias.data.fill_(0.0)
+
     def forward(self, x):
         return self.D(x)
 
@@ -105,6 +112,7 @@ def _gradient_penalty( real_data, generated_data):
 def train_WD():
 	losses = []
 	thetas = np.array(range(-10, 11))/10
+	D_real = next(samplers.distribution1(0, 512))
 	for i in range(21):
 		if cuda:
 			Discriminator = Net().cuda()
@@ -115,12 +123,12 @@ def train_WD():
 		optimizer = optim.Adam(Discriminator.parameters(), lr = 1e-3)
 
 		print(thetas[i])
-		D_real = next(samplers.distribution1(0, 512))
 		# print
+		D_fake = next(samplers.distribution1(thetas[i], 512))
 
 		X = torch.from_numpy(D_real).float()
-		Y = torch.from_numpy(D_real).float()
-		Y[:,0] = thetas[i]
+		Y = torch.from_numpy(D_fake).float()
+
 		if cuda:
 			X = X.cuda()
 			Y = Y.cuda()
