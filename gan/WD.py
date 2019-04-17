@@ -8,7 +8,6 @@ import torch.optim as optim
 from torch.autograd import grad as torch_grad
 import samplers as samplers
 
-
 cuda = torch.cuda.is_available();
 
 class Net(nn.Module):
