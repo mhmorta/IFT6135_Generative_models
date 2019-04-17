@@ -35,7 +35,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 
 model = VAE(args.hidden_features).to(device)
 
-optimizer = optim.Adam(model.parameters(), lr=30e-4)
+optimizer = optim.Adam(model.parameters(), lr=3*10e-4)
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 results_dir = '{}/results'.format(current_dir)
