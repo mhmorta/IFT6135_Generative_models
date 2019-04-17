@@ -48,9 +48,9 @@ def loss_function(recon_x, x, mu, logvar):
     # fidelity loss
     # https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=608
     # todo reduce_sum or reduce_mean? https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=739
-    BCE = F.binary_cross_entropy(recon_x.view(args.batch_size, -1), x.view(args.batch_size, -1), reduction='sum')
+    BCE = -F.binary_cross_entropy(recon_x.view(args.batch_size, -1), x.view(args.batch_size, -1), reduction='sum')
 
-    # Compute the divergence D_KL[q(x|z)||p(z)]
+    # Compute the divergence D_KL[q(z|x)||p(z)]
     # given z ~ N(0, 1)
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
@@ -59,8 +59,10 @@ def loss_function(recon_x, x, mu, logvar):
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     # todo if we change it to negative value adjust the saving best model logic in main
 
-    ELBO = BCE + KLD
-    return ELBO
+    ELBO = BCE - KLD
+
+    # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
+    return -ELBO
 
 
 def train(epoch):
