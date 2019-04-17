@@ -35,7 +35,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 
 model = VAE(args.hidden_features).to(device)
 
-optimizer = optim.Adam(model.parameters(), lr=3*10e-4)
+optimizer = optim.Adam(model.parameters(), lr=3e-4)
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 results_dir = '{}/results'.format(current_dir)
@@ -103,7 +103,7 @@ def validate(epoch):
                          '{}/reconstruction_{}.png'.format(results_dir, epoch), nrow=n)
 
     test_loss /= len(valid_loader.dataset)
-    print('====> Validation set loss: {:.4f}'.format(test_loss))
+    print('====> Average Validation loss: {:.4f}'.format(test_loss))
     return test_loss
 
 
@@ -117,7 +117,7 @@ def test():
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
 
     test_loss /= len(test_loader.dataset)
-    print('====> Test set loss: {:.4f}'.format(test_loss))
+    print('====> Average Test loss: {:.4f}'.format(test_loss))
 
 
 def sample(epoch):
