@@ -44,18 +44,23 @@ saved_model = '{}/saved_model'.format(current_dir)
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
+    # E[log P(X|z)]
     # fidelity loss
     # https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=608
     # todo reduce_sum or reduce_mean? https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=739
     BCE = F.binary_cross_entropy(recon_x.view(args.batch_size, -1), x.view(args.batch_size, -1), reduction='sum')
 
+    # Compute the divergence D_KL[q(x|z)||p(z)]
+    # given z ~ N(0, 1)
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
     # https://arxiv.org/abs/1312.6114
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     # todo if we change it to negative value adjust the saving best model logic in main
-    return BCE + KLD
+
+    ELBO = BCE + KLD
+    return ELBO
 
 
 def train(epoch):
