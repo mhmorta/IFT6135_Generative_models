@@ -7,7 +7,6 @@ from torch import optim
 from torchvision.utils import save_image
 from vae.model import VAE
 from vae.dataloader import binarized_mnist_data_loader, MNIST_IMAGE_SIZE
-from torch.nn import functional as F
 import os
 
 
@@ -41,30 +40,6 @@ current_dir = os.path.dirname(os.path.realpath(__file__))
 results_dir = '{}/results'.format(current_dir)
 saved_model = '{}/saved_model'.format(current_dir)
 
-
-# Reconstruction + KL divergence losses summed over all elements and batch
-def loss_function(x, recon_x, mu, logvar):
-    # E[log P(X|z)]
-    # fidelity loss
-    # https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=608
-    # todo reduce_sum or reduce_mean? https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=739
-    logx_z_likelihood = -F.binary_cross_entropy(recon_x.view(args.batch_size, -1), x.view(args.batch_size, -1), reduction='sum')
-
-    # Compute the divergence D_KL[q(z|x)||p(z)]
-    # given z ~ N(0, 1)
-    # see Appendix B from VAE paper:
-    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
-    # https://arxiv.org/abs/1312.6114
-    # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    # todo if we change it to negative value adjust the saving best model logic in main
-
-    ELBO = (logx_z_likelihood - KLD) / x.size(0)
-
-    # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
-    return -ELBO
-
-
 def train(epoch):
     model.train()
     train_loss = 0
@@ -75,7 +50,7 @@ def train(epoch):
         data = data.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
-        loss = loss_function(data, recon_batch, mu, logvar)
+        loss = model.loss_function(data, recon_batch, mu, logvar)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
@@ -97,7 +72,7 @@ def validate(epoch):
         for i, data in enumerate(valid_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
-            valid_loss += loss_function(data, recon_batch, mu, logvar).item()
+            valid_loss += model.loss_function(data, recon_batch, mu, logvar).item()
             if i == 0:
                 n = min(data.size(0), 8)
                 comparison = torch.cat([data[:n], recon_batch.view(args.batch_size, 1, MNIST_IMAGE_SIZE, MNIST_IMAGE_SIZE)[:n]])
@@ -116,7 +91,7 @@ def test():
         for i, data in enumerate(test_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
-            test_loss += loss_function(data, recon_batch, mu, logvar).item()
+            test_loss += model.loss_function(data, recon_batch, mu, logvar).item()
 
     test_loss /= (i + 1)
     print('====> Average Test loss: {:.4f}'.format(test_loss))

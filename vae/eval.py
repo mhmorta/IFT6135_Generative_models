@@ -107,5 +107,5 @@ with torch.no_grad():
         X = torch.load('sample_input/batch_size_64/valid_{:03d}.pt'.format(i))
         ret = np.mean(eval_log_px(X, num_samples=128, debug=False))
         print('log(x): ', ret)
-        elbo = loss_function(X, *model(X))
+        elbo = -loss_function(X, *model(X))
         print('ELBO:', elbo)
