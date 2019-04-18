@@ -4,7 +4,7 @@ from scipy.special import logsumexp
 from scipy.stats import norm
 from torch.nn import functional as F
 
-from vae.train import model, device
+from vae.train import model, device, current_dir
 
 
 # based on
@@ -52,11 +52,11 @@ def eval_log_px(model, X, z_samples, qz):
 
 with torch.no_grad():
     # load examples from the valid_loader to save time because it takes too long to load
-    model.load_state_dict(torch.load('best_model/params_epoch_20_loss_94.4314.pt', map_location=device))
+    model.load_state_dict(torch.load('{}/best_model/params_epoch_20_loss_94.4314.pt'.format(current_dir), map_location=device))
     model.eval()
     for i in range(10):
         print('Batch ', i)
-        X = torch.load('split_mnist/batch_size_64/valid_{:03d}.pt'.format(i))
+        X = torch.load('{}/split_mnist/batch_size_64/valid_{:03d}.pt'.format(current_dir, i))
         z_samples, qz = sample_z(model, X, num_samples=200)
         ret = np.mean(eval_log_px(model, X, z_samples, qz))
         print('log p(x): ', ret)
