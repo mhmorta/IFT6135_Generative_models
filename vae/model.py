@@ -83,7 +83,7 @@ class VAE(nn.Module):
         # fidelity loss
         # https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=608
         # todo reduce_sum or reduce_mean? https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=739
-        logx_z_likelihood = -F.binary_cross_entropy(recon_x, x, reduction='sum')
+        logp_xz = -F.binary_cross_entropy(recon_x, x, reduction='sum')
 
         # Compute the divergence D_KL[q(z|x)||p(z)]
         # given z ~ N(0, 1)
@@ -94,7 +94,7 @@ class VAE(nn.Module):
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
         # divide by batch size to get average value
-        ELBO = (logx_z_likelihood - KLD) / x.size(0)
+        ELBO = (logp_xz - KLD) / x.size(0)
 
         # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
         return -ELBO
