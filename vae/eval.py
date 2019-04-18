@@ -3,6 +3,7 @@ import torch
 from scipy.special import logsumexp
 from scipy.stats import norm
 from torch.nn import functional as F
+import os
 
 from vae.train import model, device, current_dir
 
@@ -52,13 +53,23 @@ def eval_log_px(model, X, z_samples, qz):
 
 with torch.no_grad():
     # load examples from the valid_loader to save time because it takes too long to load
+    print('loading trained model')
     model.load_state_dict(torch.load('{}/best_model/params_epoch_20_loss_94.4314.pt'.format(current_dir), map_location=device))
     model.eval()
-    for i in range(10):
-        print('Batch ', i)
-        X = torch.load('{}/split_mnist/batch_size_64/valid_{:03d}.pt'.format(current_dir, i), map_location=device)
+    log_px_arr = []
+    elbo_arr = []
+    dir_name = '{}/split_mnist/batch_size_64/'.format(current_dir)
+    for file in os.listdir(os.fsencode(dir_name)):
+        filename = os.fsdecode(file)
+        print('Batch for', filename)
+        X = torch.load('{}/{}'.format(dir_name, filename), map_location=device)
         z_samples, qz = sample_z(model, X, num_samples=200)
         ret = np.mean(eval_log_px(model, X, z_samples, qz))
         print('log p(x): ', ret)
-        elbo = -model.loss_function(X, *model(X))
-        print('ELBO:', elbo.item())
+        log_px_arr.append(ret)
+        elbo = -model.loss_function(X, *model(X)).item()
+        print('ELBO:', elbo)
+        elbo_arr.append(elbo)
+    print('===FINAL===')
+    print('log p(x)={}, ELBO={}'.format(np.mean(log_px_arr), np.mean(elbo_arr)))
+
