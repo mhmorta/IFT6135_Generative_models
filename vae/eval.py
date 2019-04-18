@@ -18,7 +18,7 @@ def sample_z(model, X, num_samples):
     for mu, logvar in zip(mus, logvars):
         z_vals = torch.stack([model.reparameterize(mu, logvar) for _ in range(num_samples)])
         z_samples.append(z_vals)
-        qz.append([norm.pdf(zv, loc=mu.cpu(), scale=np.exp(0.5 * logvar.cpu())) for zv in z_vals])
+        qz.append([norm.pdf(zv.cpu(), loc=mu.cpu(), scale=np.exp(0.5 * logvar.cpu())) for zv in z_vals])
     z_samples = torch.stack(z_samples)
     qz = np.array(qz)
     return z_samples, qz
