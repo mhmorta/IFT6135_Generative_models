@@ -85,28 +85,28 @@ def train(epoch):
                 100. * batch_idx / len(train_loader),
                 loss.item()))
 
-    print('====> Epoch: {} Average loss: {:.4f}'.format(
-          epoch, train_loss / len(train_loader.dataset)))
+    train_loss /= (batch_idx + 1)
+    print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss))
 
 
 def validate(epoch):
     model.eval()
-    test_loss = 0
+    valid_loss = 0
 
     with torch.no_grad():
         for i, data in enumerate(valid_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
-            test_loss += loss_function(data, recon_batch, mu, logvar).item()
+            valid_loss += loss_function(data, recon_batch, mu, logvar).item()
             if i == 0:
                 n = min(data.size(0), 8)
                 comparison = torch.cat([data[:n], recon_batch.view(args.batch_size, 1, MNIST_IMAGE_SIZE, MNIST_IMAGE_SIZE)[:n]])
                 save_image(comparison.cpu(),
                          '{}/reconstruction_{}.png'.format(results_dir, epoch), nrow=n)
 
-    test_loss /= len(valid_loader.dataset)
-    print('====> Average Validation loss: {:.4f}'.format(test_loss))
-    return test_loss
+    valid_loss /= (i + 1)
+    print('====> Average Validation loss: {:.4f}'.format(valid_loss))
+    return valid_loss
 
 
 def test():
@@ -118,7 +118,7 @@ def test():
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(data, recon_batch, mu, logvar).item()
 
-    test_loss /= len(test_loader.dataset)
+    test_loss /= (i + 1)
     print('====> Average Test loss: {:.4f}'.format(test_loss))
 
 
