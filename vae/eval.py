@@ -17,6 +17,7 @@ def sample_z(model, x, num_samples):
     qz = []
     for mu, logvar in zip(mus, logvars):
         z_vals = torch.stack([model.reparameterize(mu, logvar) for _ in range(num_samples)])  # (K x L)
+        # multiplying logvar by 0.5 as in the VAE.loss_function() because \log \sigma^2 = 2 \log \sigma
         qz_vals = [norm.pdf(zv.cpu(), loc=mu.cpu(), scale=np.exp(0.5 * logvar.cpu())) for zv in z_vals]  # (K x L)
         z_samples.append(z_vals)
         qz.append(qz_vals)
