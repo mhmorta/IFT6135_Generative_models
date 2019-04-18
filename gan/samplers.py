@@ -28,6 +28,11 @@ def distribution4(batch_size=1):
         yield(f(np.random.normal(0, 1, (batch_size, 1))))
 
 
+def distributionGaussian(batch_size=1):
+    while True:
+        yield(np.random.normal(0, 1, (batch_size, 1)))
+
+
 
 if __name__ == '__main__':
     # Example of usage
