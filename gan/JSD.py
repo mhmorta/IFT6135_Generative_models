@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
@@ -7,8 +8,7 @@ import torch.optim as optim
 from torch.autograd import grad as torch_grad
 import samplers as samplers
 
-# a = np.randn.uniform(0, 1)
-## the data also come form the distribution
+
 
 cuda = torch.cuda.is_available();
 
@@ -21,8 +21,8 @@ class Net(nn.Module):
         self.D = torch.nn.Sequential(
 			    torch.nn.Linear(X_dim, h_dim),
 			    torch.nn.ReLU(),
-			    # torch.nn.Linear(h_dim, h_dim),
-			    # torch.nn.ReLU(),
+			    torch.nn.Linear(h_dim, h_dim),
+			    torch.nn.ReLU(),
 			    torch.nn.Linear(h_dim, 1),
 			    torch.nn.Sigmoid()
 			)
@@ -55,7 +55,8 @@ def train_JSD():
 		else:
 			Discriminator = Net()
 
-		optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
+		# optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
+		optimizer = optim.Adam(Discriminator.parameters(), lr = 1e-3)
 
 		print(thetas[i])
 		
@@ -70,7 +71,7 @@ def train_JSD():
 			Y = Y.cuda()
 		
 		#  training stage
-		for e in range(50000):
+		for e in range(5000):
 			O_real = Discriminator(X)
 			O_fake = Discriminator(Y)
 
@@ -78,7 +79,7 @@ def train_JSD():
 
 			loss = JSD(O_real, O_fake)
 
-			if ( e%10000 == True):
+			if ( e%1000 == True):
 				print(-loss.data)
 
 			loss.backward()
@@ -91,17 +92,20 @@ def train_JSD():
 		loss = JSD(O_real, O_fake)
 
 		print (-loss.data)
-		losses.append(loss)
+		losses.append(-loss)
 	print ('Done...')
 
+	losses = np.array(losses)
 	plt.figure()
-	plt.figure(figsize=(8,4))
-	plt.subplot(1,2,1)
-	plt.plot(thetas,losses)
-	plt.title(r'$D(x)$')
-	plt.savefig('Jenssen_Shanon_Divergence.png')
+	plt.scatter(thetas,losses)
+	plt.title('Jenssen Shanon Divergence')
+	plt.savefig('Jenssen_Shanon_Divergence.png') 
 	plt.close()
 
 train_JSD()
+
+
+
+
 
 
