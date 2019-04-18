@@ -56,7 +56,7 @@ with torch.no_grad():
     model.eval()
     for i in range(10):
         print('Batch ', i)
-        X = torch.load('{}/split_mnist/batch_size_64/valid_{:03d}.pt'.format(current_dir, i))
+        X = torch.load('{}/split_mnist/batch_size_64/valid_{:03d}.pt'.format(current_dir, i), map_location=device)
         z_samples, qz = sample_z(model, X, num_samples=200)
         ret = np.mean(eval_log_px(model, X, z_samples, qz))
         print('log p(x): ', ret)
