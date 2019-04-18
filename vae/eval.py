@@ -59,7 +59,7 @@ with torch.no_grad():
     log_px_arr = []
     elbo_arr = []
     dir_name = '{}/split_mnist/batch_size_64/'.format(current_dir)
-    for file in os.listdir(os.fsencode(dir_name)):
+    for file in sorted(os.listdir(os.fsencode(dir_name))):
         filename = os.fsdecode(file)
         print('Batch for', filename)
         X = torch.load('{}/{}'.format(dir_name, filename), map_location=device)
