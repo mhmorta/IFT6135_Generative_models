@@ -25,7 +25,7 @@ def sample_z(model, X, num_samples):
 
 
 def eval_log_px(model, X, z_samples, qz):
-    pz = norm.pdf(z_samples)
+    pz = norm.pdf(z_samples.cpu())
     result = []
     for x_input, z_sample, pz_i, qz_i in zip(X, z_samples, pz, qz):
         x_recon = model.decode(z_sample)
