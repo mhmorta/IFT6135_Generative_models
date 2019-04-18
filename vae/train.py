@@ -43,7 +43,7 @@ saved_model = '{}/saved_model'.format(current_dir)
 
 
 # Reconstruction + KL divergence losses summed over all elements and batch
-def loss_function(recon_x, x, mu, logvar):
+def loss_function(x, recon_x, mu, logvar):
     # E[log P(X|z)]
     # fidelity loss
     # https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=608
@@ -59,7 +59,7 @@ def loss_function(recon_x, x, mu, logvar):
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     # todo if we change it to negative value adjust the saving best model logic in main
 
-    ELBO = logx_z_likelihood - KLD
+    ELBO = (logx_z_likelihood - KLD) / x.size(0)
 
     # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
     return -ELBO
@@ -75,7 +75,7 @@ def train(epoch):
         data = data.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
-        loss = loss_function(recon_batch, data, mu, logvar)
+        loss = loss_function(data, recon_batch, mu, logvar)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
@@ -83,7 +83,7 @@ def train(epoch):
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
-                loss.item() / len(data)))
+                loss.item()))
 
     print('====> Epoch: {} Average loss: {:.4f}'.format(
           epoch, train_loss / len(train_loader.dataset)))
@@ -97,7 +97,7 @@ def validate(epoch):
         for i, data in enumerate(valid_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
-            test_loss += loss_function(recon_batch, data, mu, logvar).item()
+            test_loss += loss_function(data, recon_batch, mu, logvar).item()
             if i == 0:
                 n = min(data.size(0), 8)
                 comparison = torch.cat([data[:n], recon_batch.view(args.batch_size, 1, MNIST_IMAGE_SIZE, MNIST_IMAGE_SIZE)[:n]])
@@ -116,7 +116,7 @@ def test():
         for i, data in enumerate(test_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
-            test_loss += loss_function(recon_batch, data, mu, logvar).item()
+            test_loss += loss_function(data, recon_batch, mu, logvar).item()
 
     test_loss /= len(test_loader.dataset)
     print('====> Average Test loss: {:.4f}'.format(test_loss))
