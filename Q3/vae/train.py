@@ -49,7 +49,7 @@ def train(epoch):
             break
         data = data.to(device)
         optimizer.zero_grad()
-        mean_x, mu, logvar = model(data)
+        _, mean_x, mu, logvar = model(data)
         loss = model.loss_function(mean_x, data, mu, logvar)
         loss.backward()
         train_loss += loss.item()
@@ -72,11 +72,11 @@ def validate(epoch):
     with torch.no_grad():
         for i, (data, y) in enumerate(valid_loader):
             data = data.to(device)
-            mean_x, mu, logvar = model(data)
+            z, mean_x, mu, logvar = model(data)
             valid_loss += model.loss_function(mean_x, data, mu, logvar).item()
             if i == 0:
                 n = min(data.size(0), 8)
-                comparison = torch.cat([data[:n], model.generate(mean_x)[:n]])
+                comparison = torch.cat([data[:n], model.generate(z)[:n]])
                 save_image(comparison.cpu(),
                          '{}/reconstruction_{}.png'.format(results_dir, epoch), nrow=n)
 
@@ -91,20 +91,20 @@ def test():
     with torch.no_grad():
         for i, data in enumerate(test_loader):
             data = data.to(device)
-            recon_batch, mu, logvar = model(data)
-            test_loss += model.loss_function(recon_batch, data, mu, logvar).item()
+            z, mean_x, mu, logvar = model(data)
+            test_loss += model.loss_function(mean_x, data, mu, logvar).item()
 
     test_loss /= (i + 1)
     print('====> Average Test loss: {:.4f}'.format(test_loss))
 
 
-# def sample(epoch):
-#     model.eval()
-#     with torch.no_grad():
-#         sample = torch.randn(args.batch_size, args.hidden_features).to(device)
-#         sample = model.decode(sample).cpu()
-#         save_image(sample.view(args.batch_size, 1, MNIST_IMAGE_SIZE, MNIST_IMAGE_SIZE),
-#                    '{}/sample_{}.png'.format(results_dir, epoch))
+def sample(epoch):
+    model.eval()
+    with torch.no_grad():
+        sample = torch.randn(args.batch_size, args.hidden_features).to(device)
+        sample = model.generate(sample).cpu()
+        save_image(sample.view(args.batch_size, 3, 32, 32),
+                   '{}/sample_{}.png'.format(results_dir, epoch))
 
 if __name__ == '__main__':
 

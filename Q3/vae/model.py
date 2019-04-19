@@ -81,7 +81,7 @@ class VAE(nn.Module):
     def loss_function(self, x_decoded_mean, x, z_mean, z_logvar):
         x = Flatten()(x)
         x_decoded_mean = Flatten()(x_decoded_mean)
-        log_likelihood = - F.mse_loss(x, x_decoded_mean, reduction='sum') / (2 * 0.01 ** 2) + math.log(0.01)
+        log_likelihood = - F.mse_loss(x, x_decoded_mean, reduction='sum') # / (2 * 0.01 ** 2) + math.log(0.01)
         KLD = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
 
         ELBO = log_likelihood - KLD
@@ -96,9 +96,9 @@ class VAE(nn.Module):
         mean_z, logvar_z = self.encode(x)
         z = self.reparameterize(mean_z, logvar_z)
         mean_x = self.decode(z)
-        return mean_x, mean_z, logvar_z
+        return z, mean_x, mean_z, logvar_z
 
-    def generate(self, mean):
-        return torch.normal(mean, 0.01)
+    def generate(self, z):
+        return self.decode(z)
 
 
