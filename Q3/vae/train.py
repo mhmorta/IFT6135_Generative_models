@@ -1,13 +1,13 @@
-import torch
-from Q3.vae.dataloader import svhn_data_loader
-from Q3.vae.model import VAE, Flatten
-
 import argparse
+import os
+
+import torch
 import torch.utils.data
 from torch import optim
 from torchvision.utils import save_image
-import os
 
+from Q3.vae.dataloader import svhn_data_loader
+from Q3.vae.model import VAE
 
 parser = argparse.ArgumentParser(description='VAE SVHN Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
