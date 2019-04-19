@@ -10,7 +10,7 @@ import samplers
 class Trainer():
     def __init__(self, generator, discriminator, gen_optimizer, dis_optimizer, data_loaders,
                  gp_weight=10, critic_iterations=5, print_every=50, lambda_gp=10, epochs = 50, 
-                 batch_size = 64, use_cuda=False):
+                 batch_size = 512, use_cuda=False):
         self.G = generator
         self.G_opt = gen_optimizer
         self.D = discriminator
@@ -38,7 +38,7 @@ class Trainer():
         D_loss = -(D_loss_real - D_loss_fake - (regularizer))
         return D_loss
     
-    def g_loss(self):
+    def g_loss(self, data):
         """ """
         self.G_opt.zero_grad()
 
@@ -82,13 +82,14 @@ class Trainer():
 
                 self.G_opt.zero_grad()
 
-                noise = Variable(torch.Tensor(next(samplers.distribution1(0, self.batch_size))))
+                # noise = Variable(torch.Tensor(next(samplers.distribution3(self.batch_size))))
+                noise = Variable(torch.randn(100, 100))
 
                 ## generate a batch of images
                 gen_imgs = self.G(noise)
 
                 ## loss of generator (what is the adversarial loss)
-                g_loss = self.g_loss()
+                g_loss = self.g_loss(gen_imgs)
 
                 g_loss.backward()
                 self.G_opt.step()

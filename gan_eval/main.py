@@ -12,10 +12,11 @@ from models import Generator, Discriminator
 from Trainer import Trainer
 
 cuda = torch.cuda.is_available()
+cuda = False
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--epochs", type=int, default=1000, help="number of epochs of training")
-parser.add_argument("--batch_size", type=int, default=128, help="size of the batches")
+parser.add_argument("--batch_size", type=int, default=100, help="size of the batches")
 parser.add_argument("--optimizer", type=str, default='SGD', help="type of the optimizer")
 parser.add_argument("--lr", type=float, default=1e-3, help="adam: learning rate")
 parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
@@ -36,8 +37,8 @@ data_loaders = {"trainloader": trainloader,
 
 img_size = (32, 32, 1)
 
-generator = Generator()
-discriminator = Discriminator(args.latent_dim)
+generator = Generator(args.latent_dim)
+discriminator = Discriminator(args.channels, args.latent_dim)
 
 ## optimizers
 if args.optimizer == "ADAM":
@@ -49,7 +50,7 @@ else:
 
 # Train model
 trainer = Trainer(generator, discriminator, gen_optimizer= gen_optimizer, dis_optimizer= dis_optimizer,
-            use_cuda=torch.cuda.is_available(), batch_size = args.batch_size, data_loaders=data_loaders, epochs =args.epochs)
+            use_cuda=cuda, batch_size = args.batch_size, data_loaders=data_loaders, epochs =args.epochs)
 trainer.train()
 
 ## training
