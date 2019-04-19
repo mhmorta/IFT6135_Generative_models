@@ -1,109 +1,69 @@
-from vae.train import current_dir, model, device
-from vae.dataloader import binarized_mnist_data_loader, MNIST_IMAGE_SIZE
 import numpy as np
-from scipy.stats import norm
-from scipy.special import logsumexp
 import torch
+from scipy.special import logsumexp
+from scipy.stats import norm
+from torch.nn import functional as F
+import os
+
+from vae.train import model, device, current_dir
 
 
 # based on
 # http://bjlkeng.github.io/posts/importance-sampling-and-estimating-marginal-likelihood-in-variational-autoencoders/
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/vae-importance_sampling/vae-mnist-importance-sampling.ipynb
-def compute_samples(data, num_samples, debug=False):
-    """ Sample from importance distribution z_samples ~ q(z|X) and
-        compute p(z_samples), q(z_samples) for importance sampling
-    """
-    z_mean, z_log_sigma = model.encode(data)
-
+def sample_z(model, x, num_samples):
+    mus, logvars = model.encode(x)
     z_samples = []
     qz = []
-
-    for m, s in zip(z_mean, z_log_sigma):
-        m = m.detach().numpy()
-        s = s.detach().numpy()
-        z_vals = [np.random.normal(m[i], np.exp(s[i]), num_samples)
-                  for i in range(len(m))]
-        qz_vals = [norm.pdf(z_vals[i], loc=m[i], scale=np.exp(s[i]))
-                   for i in range(len(m))]
+    for mu, logvar in zip(mus, logvars):
+        z_vals = torch.stack([model.reparameterize(mu, logvar) for _ in range(num_samples)])  # (K x L)
+        # multiplying logvar by 0.5 as in the VAE.loss_function() because \log \sigma^2 = 2 \log \sigma
+        qz_vals = [norm.pdf(zv.cpu(), loc=mu.cpu(), scale=np.exp(0.5 * logvar.cpu())) for zv in z_vals]  # (K x L)
         z_samples.append(z_vals)
         qz.append(qz_vals)
-
-    z_samples = np.array(z_samples)
-    pz = norm.pdf(z_samples)
-    qz = np.array(qz)
-
-    z_samples = np.swapaxes(z_samples, 1, 2)
-    pz = np.swapaxes(pz, 1, 2)
-    qz = np.swapaxes(qz, 1, 2)
-
-    if debug:
-        print(z_mean.shape, z_log_sigma.shape)
-        print('m, s', m[0], s[0])
-        print('samples', z_samples[-1][0])
-        print('pvals', pz[-1][0])
-        print('qvals', qz[-1][0])
-
-        print(z_samples.shape)
-        print(pz.shape)
-        print(qz.shape)
-
-    return z_samples, pz, qz
+    z_samples = torch.stack(z_samples)  # (M x K x L)
+    qz = np.array(qz)  # (M x K x L)
+    return z_samples, qz
 
 
-# i put in here 10 examples from the valid_loader to save time because it takes too long to load
-X = torch.load('sample_input/X.pt')
-#compute_samples(X, 4, debug=True)
+def eval_log_px(model, x, z_samples, qz):
+    pz = norm.pdf(z_samples.cpu())  # (M x K x L)
+    ret = []
+    for x_input, z_sample, pz_i, qz_i in zip(x, z_samples, pz, qz):
+        x_recon = model.decode(z_sample)  # x_recon: (K x 1 x 28 x 28), input: (1 x 28 x 28)
+        log_pxz = []
+        for x_r in x_recon:
+            log_pxz.append(-F.binary_cross_entropy(x_r, x_input, reduction='sum'))
+        log_pxz = np.array(log_pxz)  # (K)
+        log_pz = np.sum(np.log(pz_i), axis=-1)  # (K)
+        log_qz = np.sum(np.log(qz_i), axis=-1)  # (K)
+        argsum = log_pxz + log_pz - log_qz  # (K)
+        log_px = -np.log(len(argsum)) + logsumexp(argsum)
+        ret.append(log_px)
+
+    ret = np.array(ret)  # (M)
+    return ret
 
 
-def estimate_logpx_batch(data, num_samples, debug=False):
-    z_samples, pz, qz = compute_samples(data, num_samples)
-    z_samples = torch.from_numpy(z_samples).float()
-    assert len(z_samples) == len(data)
-    assert len(z_samples) == len(pz)
-    assert len(z_samples) == len(qz)
+with torch.no_grad():
+    print('loading trained model')
+    model.load_state_dict(torch.load('{}/best_model/params_epoch_20_loss_94.4314.pt'.format(current_dir), map_location=device))
+    model.eval()
+    log_px_arr = []
+    elbo_arr = []
+    dir_name = '{}/split_mnist/batch_size_64/'.format(current_dir)
+    for file in sorted(os.listdir(os.fsencode(dir_name))):
+        filename = os.fsdecode(file)
+        print('Batch for', filename)
+        # load examples from the split binarized mnist to save time because it takes too long to load & split
+        X = torch.load('{}/{}'.format(dir_name, filename), map_location=device)
+        z_samples, qz = sample_z(model, X, num_samples=200)
+        ret = np.mean(eval_log_px(model, X, z_samples, qz))
+        print('log p(x): ', ret)
+        log_px_arr.append(ret)
+        elbo = -model.loss_function(X, *model(X)).item()
+        print('ELBO:', elbo)
+        elbo_arr.append(elbo)
+    print('===FINAL===')
+    print('log p(x)={}, ELBO={}'.format(np.mean(log_px_arr), np.mean(elbo_arr)))
 
-    # Calculate importance sample
-    # \log p(x) = E_p[p(x|z)]
-    # = \log(\int p(x|z) p(z) dz)
-    # = \log(\int p(x|z) p(z) / q(z|x) q(z|x) dz)
-    # = E_q[p(x|z) p(z) / q(z|x)]
-    # ~= \log(1/n * \sum_i p(x|z_i) p(z_i)/q(z_i))
-    # = \log p(x) = \log(1/n * \sum_i e^{\log p(x|z_i) + \log p(z_i) - \log q(z_i)})
-    # = \log p(x) = -\logn + \logsumexp_i(\log p(x|z_i) + \log p(z_i) - \log q(z_i))
-    # See: scipy.special.logsumexp
-    result = []
-    for i in range(len(data)):
-        datum = data[i].reshape(784).detach().numpy()
-        x_predict = model.decode(z_samples[i]).reshape(-1, 784).detach().numpy()
-        x_predict = np.clip(x_predict, np.finfo(float).eps, 1. - np.finfo(float).eps)
-        p_vals = pz[i]
-        q_vals = qz[i]
-
-        # \log p(x|z) = Binary cross entropy
-        logp_xz = np.sum(datum * np.log(x_predict) + (1. - datum) * np.log(1.0 - x_predict), axis=-1)
-        logpz = np.sum(np.log(p_vals), axis=-1)
-        logqz = np.sum(np.log(q_vals), axis=-1)
-        argsum = logp_xz + logpz - logqz
-        logpx = -np.log(num_samples) + logsumexp(argsum)
-        result.append(logpx)
-
-        if debug:
-            print(x_predict.shape)
-            print(p_vals.shape)
-            print(q_vals.shape)
-            print(logp_xz.shape)
-            print(logpz.shape)
-            print(logqz.shape)
-            print("logp_xz", logp_xz)
-            print("logpz", logpz)
-            print("logqz", logqz)
-            print(argsum.shape)
-            print("logpx", logpx)
-
-    return np.array(result)
-
-
-model.eval()
-model.load_state_dict(torch.load('saved_model/params_epoch_9_loss_98.7259.pt', map_location=device))
-ret = estimate_logpx_batch(X, num_samples=128, debug=False)
-print('log(x): ', ret)
