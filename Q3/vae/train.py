@@ -46,7 +46,7 @@ def loss_function(x_decoded_mean, x, z_mean, z_logvar):
     x = Flatten()(x)
     x_decoded_mean = Flatten()(x_decoded_mean)
 
-    log_likelihood = - F.mse_loss(x, x_decoded_mean, reduction='mean')
+    log_likelihood = - F.mse_loss(x, x_decoded_mean, reduction='sum')
     KLD = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
 
     ELBO = log_likelihood - KLD
