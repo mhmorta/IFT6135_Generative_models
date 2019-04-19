@@ -52,7 +52,7 @@ def loss_function(x_decoded_mean, x, z_mean, z_logvar):
     ELBO = log_likelihood - KLD
 
     # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
-    return -ELBO
+    return -ELBO / x.size[0]
 
 
 def train(epoch):

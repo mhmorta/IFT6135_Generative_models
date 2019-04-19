@@ -75,7 +75,7 @@ class VAE(nn.Module):
         return mu + eps * std
 
     def decode(self, z):
-        return torch.sigmoid(self.decoder(z))
+        return torch.tanh(self.decoder(z))
 
     def forward(self, x):
         mean_z, logvar_z = self.encode(x)
@@ -84,6 +84,6 @@ class VAE(nn.Module):
         return mean_x, mean_z, logvar_z
 
     def generate(self, mean):
-        return torch.normal(mean, 1)
+        return torch.normal(mean, 0.01)
 
 
