@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import math
-
 import torch
 import torch.utils.data
 from torch import nn
@@ -79,8 +77,8 @@ class VAE(nn.Module):
         return mu + eps * std
 
     def loss_function(self, x_decoded_mean, x, z_mean, z_logvar):
-        x = Flatten()(x)
-        x_decoded_mean = Flatten()(x_decoded_mean)
+        #x = Flatten()(x)
+        #x_decoded_mean = Flatten()(x_decoded_mean)
         log_likelihood = - F.mse_loss(x, x_decoded_mean, reduction='sum') # / (2 * 0.01 ** 2) + math.log(0.01)
         KLD = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
 
