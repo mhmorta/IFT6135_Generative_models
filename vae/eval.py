@@ -35,21 +35,13 @@ def eval_log_px(model, x, z_samples, qz):
         for x_r in x_recon:
             log_pxz.append(-F.binary_cross_entropy(x_r, x_input, reduction='sum'))
         log_pxz = np.array(log_pxz)  # (K)
-        # See: scipy.special.logsumexp
-        # \log p(x) = E_p[p(x|z)]
-        # = \log(\int p(x|z) p(z) dz)
-        # = \log(\int p(x|z) p(z) / q(z|x) q(z|x) dz)
-        # = E_q[p(x|z) p(z) / q(z|x)]
-        # ~= \log(1/n * \sum_i p(x|z_i) p(z_i)/q(z_i))
-        # = \log p(x) = \log(1/n * \sum_i e^{\log p(x|z_i) + \log p(z_i) - \log q(z_i)})
-        # = \log p(x) = -\logn + \logsumexp_i(\log p(x|z_i) + \log p(z_i) - \log q(z_i))
         log_pz = np.sum(np.log(pz_i), axis=-1)  # (K)
         log_qz = np.sum(np.log(qz_i), axis=-1)  # (K)
         argsum = log_pxz + log_pz - log_qz  # (K)
         log_px = -np.log(len(argsum)) + logsumexp(argsum)
         ret.append(log_px)
 
-    ret = np.array(ret) # (M)
+    ret = np.array(ret)  # (M)
     return ret
 
 
