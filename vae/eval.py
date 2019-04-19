@@ -46,7 +46,6 @@ def eval_log_px(model, x, z_samples, qz):
 
 
 with torch.no_grad():
-    # load examples from the valid_loader to save time because it takes too long to load & split
     print('loading trained model')
     model.load_state_dict(torch.load('{}/best_model/params_epoch_20_loss_94.4314.pt'.format(current_dir), map_location=device))
     model.eval()
@@ -56,6 +55,7 @@ with torch.no_grad():
     for file in sorted(os.listdir(os.fsencode(dir_name))):
         filename = os.fsdecode(file)
         print('Batch for', filename)
+        # load examples from the split binarized mnist to save time because it takes too long to load & split
         X = torch.load('{}/{}'.format(dir_name, filename), map_location=device)
         z_samples, qz = sample_z(model, X, num_samples=200)
         ret = np.mean(eval_log_px(model, X, z_samples, qz))
