@@ -76,7 +76,7 @@ class VAE(nn.Module):
         # reparametrize
         return mu + eps * std
 
-    def loss_function(self, x_decoded_mean, x, z_mean, z_logvar):
+    def loss_function(self, x, x_decoded_mean, z_mean, z_logvar):
         #x = Flatten()(x)
         #x_decoded_mean = Flatten()(x_decoded_mean)
         log_likelihood = - F.mse_loss(x, x_decoded_mean, reduction='sum') # / (2 * 0.01 ** 2) + math.log(0.01)
