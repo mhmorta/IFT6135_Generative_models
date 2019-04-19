@@ -2,6 +2,8 @@ from __future__ import print_function
 import torch
 import torch.utils.data
 from torch import nn
+from torch.nn import functional as F
+
 
 
 class Flatten(nn.Module):
@@ -73,6 +75,18 @@ class VAE(nn.Module):
 
         # reparametrize
         return mu + eps * std
+
+    def loss_function(self, x_decoded_mean, x, z_mean, z_logvar):
+        x = Flatten()(x)
+        x_decoded_mean = Flatten()(x_decoded_mean)
+
+        log_likelihood = - F.mse_loss(x, x_decoded_mean, reduction='sum')
+        KLD = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
+
+        ELBO = log_likelihood - KLD
+
+        # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
+        return -ELBO / x.size(0)
 
     def decode(self, z):
         return torch.tanh(self.decoder(z))

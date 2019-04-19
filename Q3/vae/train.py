@@ -7,8 +7,6 @@ import torch.utils.data
 from torch import optim
 from torchvision.utils import save_image
 import os
-from torch.nn import functional as F
-import math
 
 
 parser = argparse.ArgumentParser(description='VAE SVHN Example')
@@ -42,19 +40,6 @@ results_dir = '{}/results'.format(current_dir)
 saved_model = '{}/saved_model'.format(current_dir)
 
 
-def loss_function(x_decoded_mean, x, z_mean, z_logvar):
-    x = Flatten()(x)
-    x_decoded_mean = Flatten()(x_decoded_mean)
-
-    log_likelihood = - F.mse_loss(x, x_decoded_mean, reduction='sum')
-    KLD = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
-
-    ELBO = log_likelihood - KLD
-
-    # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
-    return -ELBO / x.size(0)
-
-
 def train(epoch):
     model.train()
     train_loss = 0
@@ -65,7 +50,7 @@ def train(epoch):
         data = data.to(device)
         optimizer.zero_grad()
         mean_x, mu, logvar = model(data)
-        loss = loss_function(mean_x, data, mu, logvar)
+        loss = model.loss_function(mean_x, data, mu, logvar)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
@@ -73,30 +58,31 @@ def train(epoch):
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
-                loss.item() / len(data)))
+                loss.item()))
 
+    train_loss /= (batch_idx + 1)
     print('====> Epoch: {} Average loss: {:.4f}'.format(
-          epoch, train_loss / len(train_loader.dataset)))
+          epoch, train_loss))
 
 
 def validate(epoch):
     model.eval()
-    test_loss = 0
+    valid_loss = 0
 
     with torch.no_grad():
         for i, (data, y) in enumerate(valid_loader):
             data = data.to(device)
             mean_x, mu, logvar = model(data)
-            test_loss += loss_function(mean_x, data, mu, logvar).item()
+            valid_loss += model.loss_function(mean_x, data, mu, logvar).item()
             if i == 0:
                 n = min(data.size(0), 8)
                 comparison = torch.cat([data[:n], model.generate(mean_x)[:n]])
                 save_image(comparison.cpu(),
                          '{}/reconstruction_{}.png'.format(results_dir, epoch), nrow=n)
 
-    test_loss /= len(valid_loader.dataset)
-    print('====> Average Validation loss: {:.4f}'.format(test_loss))
-    return test_loss
+    valid_loss /= (i + 1)
+    print('====> Average Validation loss: {:.4f}'.format(valid_loss))
+    return valid_loss
 
 
 def test():
@@ -106,9 +92,9 @@ def test():
         for i, data in enumerate(test_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
-            test_loss += loss_function(recon_batch, data, mu, logvar).item()
+            test_loss += model.loss_function(recon_batch, data, mu, logvar).item()
 
-    test_loss /= len(test_loader.dataset)
+    test_loss /= (i + 1)
     print('====> Average Test loss: {:.4f}'.format(test_loss))
 
 
