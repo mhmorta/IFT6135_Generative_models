@@ -1,5 +1,6 @@
 import argparse
 import os
+from scipy import linalg
 import torchvision
 import torchvision.transforms as transforms
 import torch
@@ -69,16 +70,43 @@ def extract_features(classifier, data_loader):
             for i in range(h.shape[0]):
                 yield h[i]
 
+def mean_covariance(extracted_feature):
+    mean = extracted_feature.mean(dim=1)
+    covariance = extracted_feature.var(dim=1)
+    return mean, covariance
 
 def calculate_fid_score(sample_feature_iterator,
                         testset_feature_iterator):
     """
     To be implemented by you!
     """
+    # assert mu1.shape == mu2.shape
+    # assert sigma1.shape == sigma2.shape
+
+    # diff = mu1 - mu2
+
+    # covmean, _ = linalg.sqrtm(sigma1.dot(sigma2), disp = False)
+    # if not np.isfinite(covmean).all():
+    #     msg = ('fid calculation produces singular product')
+    #     print (msg)
+    #     offset = np.eye(sigma1.shape[0]) * 1e-6
+    #     covmean = linalg.sqrtm((sigma1 + offset).dot(sigma2 + offset))
+
+    # if np.iscomplexobj(covmean):
+    #     if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
+    #         m = np.max(np.abs(covmean.imag))
+    #         raise ValueError('Imaginary component {}'.format(m))
+    #     covmean = covmean.real
+
+    # trace_covmean = np.trace(covmean)
+
+    # d2 = (diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - (2 * trace_covmean))
+
     raise NotImplementedError(
         "TO BE IMPLEMENTED."
         "Part of Assignment 3 Quantitative Evaluations"
     )
+    return d2
 
 
 if __name__ == "__main__":
