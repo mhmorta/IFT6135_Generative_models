@@ -24,7 +24,7 @@ class Interpolate(nn.Module):
         self.scale_factor = scale_factor
 
     def forward(self, x):
-        x = self.interp(x, scale_factor=self.scale_factor, mode='bilinear')
+        x = self.interp(x, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
         return x
 
 
@@ -34,9 +34,11 @@ class VAE(nn.Module):
 
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 32, kernel_size=(3, 3)),
+            nn.BatchNorm2d(32),
             nn.ELU(),
             nn.AvgPool2d(kernel_size=2, stride=2),
             nn.Conv2d(32, 64, kernel_size=(3, 3)),
+            nn.BatchNorm2d(64),
             nn.ELU(),
             nn.AvgPool2d(kernel_size=2, stride=2),
             nn.Conv2d(64, 256, kernel_size=(5, 5)),
@@ -48,19 +50,28 @@ class VAE(nn.Module):
         self.encoder_logvar = nn.Linear(in_features=1024, out_features = hidden_features)
 
         self.decoder = nn.Sequential(
-            nn.Linear(in_features = hidden_features, out_features = 256),
+            nn.Linear(in_features=hidden_features, out_features=256),
             nn.ELU(),
             UnFlatten(),
-            nn.Conv2d(256, 64, kernel_size = (5, 5), padding = (4, 4)),
+            nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
+            nn.BatchNorm2d(64),
             nn.ELU(),
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(64, 32, kernel_size = (3, 3), padding = (2, 2)),
+            Interpolate(scale_factor=2),
+            nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
+            nn.BatchNorm2d(32),
             nn.ELU(),
-            nn.UpsamplingBilinear2d(scale_factor = 2),
-            nn.Conv2d(32, 16, kernel_size = (3, 3), padding = (2, 2)),
+            Interpolate(scale_factor=2),
+            nn.Conv2d(32, 16, kernel_size=(3, 3), padding=(2, 2)),
+            nn.BatchNorm2d(16),
             nn.ELU(),
-            nn.Conv2d(16, 3, kernel_size = (3, 3), padding = (4, 4)),
+            nn.Conv2d(16, 3, kernel_size=(3, 3), padding=(4, 4)),
+            nn.Tanh(),
+            Flatten(),
+            nn.Linear(in_features=3072, out_features=3072),
+            nn.Tanh()
         )
+
+        self.flatten = Flatten()
 
     def encode(self, x):
         h = self.encoder(x)
@@ -76,19 +87,19 @@ class VAE(nn.Module):
         # reparametrize
         return mu + eps * std
 
-    def loss_function(self, x, x_decoded_mean, z_mean, z_logvar):
-        #x = Flatten()(x)
-        #x_decoded_mean = Flatten()(x_decoded_mean)
-        log_likelihood = - F.mse_loss(x, x_decoded_mean, reduction='sum') # / (2 * 0.01 ** 2) + math.log(0.01)
-        KLD = -0.5 * torch.sum(1 + z_logvar - z_mean.pow(2) - z_logvar.exp())
+    def loss_function(self, x_decoded_mean, x, z_mean, z_logvar):
+        x_flatten = self.flatten(x)
+        logp_xz = -F.mse_loss(x_flatten, x_decoded_mean, reduction="sum")
+        KLD = -0.5 * (1 + z_logvar - z_mean.pow(2) - z_logvar.exp()).sum()
 
-        ELBO = log_likelihood - KLD
+        # divide by batch size to get average value
+        ELBO = (logp_xz - KLD) / x.size(0)
 
         # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
-        return -ELBO / x.size(0)
+        return -ELBO
 
     def decode(self, z):
-        return torch.tanh(self.decoder(z))
+        return self.decoder(z)
 
     def forward(self, x):
         mean_z, logvar_z = self.encode(x)
@@ -97,6 +108,6 @@ class VAE(nn.Module):
         return z, mean_x, mean_z, logvar_z
 
     def generate(self, z):
-        return self.decode(z)
+        return self.decode(z).view(z.size(0), 3, 32, 32)
 
 

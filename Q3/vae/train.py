@@ -17,7 +17,7 @@ parser.add_argument('--max-batch-idx', type=int, default=99999, metavar='N',
 parser.add_argument('--hidden-features', type=int, default=100, metavar='N',
                     help='latent variable size')
 parser.add_argument('--epochs', type=int, default=20, metavar='N',
-                    help='number of epochs to train (default: 10)')
+                    help='number of epochs to train (default: 20)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -49,8 +49,8 @@ def train(epoch):
             break
         data = data.to(device)
         optimizer.zero_grad()
-        _, mean_x, mu, logvar = model(data)
-        loss = model.loss_function(data, mean_x, mu, logvar)
+        _, x_decoded_mean, mu, logvar = model(data)
+        loss = model.loss_function(x_decoded_mean, data, mu, logvar)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
@@ -72,8 +72,8 @@ def validate(epoch):
     with torch.no_grad():
         for i, (data, y) in enumerate(valid_loader):
             data = data.to(device)
-            z, mean_x, mu, logvar = model(data)
-            valid_loss += model.loss_function(data, mean_x, mu, logvar).item()
+            z, x_decoded_mean, mu, logvar = model(data)
+            valid_loss += model.loss_function(x_decoded_mean, data, mu, logvar).item()
             if i == 0:
                 n = min(data.size(0), 8)
                 comparison = torch.cat([data[:n], model.generate(z)[:n]])
@@ -89,10 +89,10 @@ def test():
     model.eval()
     test_loss = 0
     with torch.no_grad():
-        for i, data in enumerate(test_loader):
+        for i, (data, y) in enumerate(test_loader):
             data = data.to(device)
-            z, mean_x, mu, logvar = model(data)
-            test_loss += model.loss_function(data, mean_x, mu, logvar).item()
+            z, x_decoded_mean, mu, logvar = model(data)
+            test_loss += model.loss_function(x_decoded_mean, data, mu, logvar).item()
 
     test_loss /= (i + 1)
     print('====> Average Test loss: {:.4f}'.format(test_loss))
@@ -119,6 +119,6 @@ if __name__ == '__main__':
             torch.save(model.state_dict(),
                        os.path.join(saved_model, 'params_epoch_{}_loss_{:.4f}.pt'.format(epoch, best_valid_loss)))
 
-        #sample(epoch)
+        sample(epoch)
 
     test()
