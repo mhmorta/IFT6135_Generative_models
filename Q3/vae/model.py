@@ -12,7 +12,7 @@ class Flatten(nn.Module):
 
 
 class UnFlatten(nn.Module):
-    def forward(self, input, size=256):
+    def forward(self, input, size=512):
         return input.view(input.size(0), size, 1, 1)
 
 
@@ -33,26 +33,31 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
 
         self.encoder = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=(3, 3)),
-            nn.BatchNorm2d(32),
-            nn.ELU(),
-            nn.AvgPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(32, 64, kernel_size=(3, 3)),
+            nn.Conv2d(3, 64, kernel_size=(3, 3)),
             nn.BatchNorm2d(64),
             nn.ELU(),
             nn.AvgPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(64, 256, kernel_size=(5, 5)),
+            nn.Conv2d(64, 128, kernel_size=(3, 3)),
+            nn.BatchNorm2d(128),
+            nn.ELU(),
+            nn.AvgPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(128, 512, kernel_size=(5, 5)),
+            nn.BatchNorm2d(512),
             nn.ELU(),
             Flatten()
         )
 
-        self.encoder_mean = nn.Linear(in_features=1024, out_features = hidden_features)
-        self.encoder_logvar = nn.Linear(in_features=1024, out_features = hidden_features)
+        self.encoder_mean = nn.Linear(in_features=2048, out_features = hidden_features)
+        self.encoder_logvar = nn.Sequential(nn.Linear(in_features=2048, out_features = hidden_features))
 
         self.decoder = nn.Sequential(
-            nn.Linear(in_features=hidden_features, out_features=256),
+            nn.Linear(in_features=hidden_features, out_features=512),
             nn.ELU(),
             UnFlatten(),
+            nn.Conv2d(512, 256, kernel_size=(5, 5), padding=(4, 4)),
+            nn.BatchNorm2d(256),
+            nn.ELU(),
+            Interpolate(scale_factor=2),
             nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
             nn.BatchNorm2d(64),
             nn.ELU(),
@@ -60,11 +65,27 @@ class VAE(nn.Module):
             nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
             nn.BatchNorm2d(32),
             nn.ELU(),
-            Interpolate(scale_factor=2),
-            nn.Conv2d(32, 16, kernel_size=(3, 3), padding=(2, 2)),
-            nn.BatchNorm2d(16),
-            nn.ELU(),
-            nn.Conv2d(16, 3, kernel_size=(3, 3), padding=(4, 4)),
+            #Interpolate(scale_factor=2),
+            nn.Conv2d(32, 3, kernel_size=(3, 3), padding=(2, 2)),
+            nn.BatchNorm2d(3),
+            #nn.ELU(),
+            #nn.Conv2d(16, 3, kernel_size=(3, 3), padding=(2, 2)),
+            #nn.BatchNorm2d(3),
+
+
+
+            # nn.Conv2d(128, 64, kernel_size=(3, 3), padding=(2, 2)),
+            # nn.BatchNorm2d(64),
+            # nn.ELU(),
+            # Interpolate(scale_factor=2),
+            # nn.Conv2d(64, 3, kernel_size=(3, 3), padding=(2, 2)),
+            # nn.BatchNorm2d(3),
+            # nn.ELU(),
+            # Interpolate(scale_factor=2),
+            # nn.Conv2d(32, 16, kernel_size=(3, 3), padding=(2, 2)),
+            # nn.BatchNorm2d(16),
+            # nn.ELU(),
+            # nn.Conv2d(16, 3, kernel_size=(3, 3), padding=(2, 2)),
             nn.Tanh(),
             Flatten(),
             nn.Linear(in_features=3072, out_features=3072),
