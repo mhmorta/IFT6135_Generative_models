@@ -35,60 +35,45 @@ class VAE(nn.Module):
         self.encoder = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=(3, 3)),
             nn.BatchNorm2d(64),
-            nn.ELU(),
+            nn.Tanh(),
             nn.AvgPool2d(kernel_size=2, stride=2),
             nn.Conv2d(64, 128, kernel_size=(3, 3)),
             nn.BatchNorm2d(128),
-            nn.ELU(),
+            nn.Tanh(),
             nn.AvgPool2d(kernel_size=2, stride=2),
             nn.Conv2d(128, 512, kernel_size=(5, 5)),
             nn.BatchNorm2d(512),
-            nn.ELU(),
+            nn.Tanh(),
             Flatten()
         )
 
         self.encoder_mean = nn.Linear(in_features=2048, out_features = hidden_features)
-        self.encoder_logvar = nn.Sequential(nn.Linear(in_features=2048, out_features = hidden_features))
+
+        # apply softplus activation function to ensure that variance is positive
+        self.encoder_var = nn.Sequential(nn.Linear(in_features=2048, out_features = hidden_features), nn.Softplus())
 
         self.decoder = nn.Sequential(
             nn.Linear(in_features=hidden_features, out_features=512),
-            nn.ELU(),
+            nn.Tanh(),
             UnFlatten(),
             nn.Conv2d(512, 256, kernel_size=(5, 5), padding=(4, 4)),
             nn.BatchNorm2d(256),
-            nn.ELU(),
+            nn.Tanh(),
             Interpolate(scale_factor=2),
             nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
             nn.BatchNorm2d(64),
-            nn.ELU(),
+            nn.Tanh(),
             Interpolate(scale_factor=2),
             nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
             nn.BatchNorm2d(32),
-            nn.ELU(),
-            #Interpolate(scale_factor=2),
+            nn.Tanh(),
             nn.Conv2d(32, 3, kernel_size=(3, 3), padding=(2, 2)),
             nn.BatchNorm2d(3),
-            #nn.ELU(),
-            #nn.Conv2d(16, 3, kernel_size=(3, 3), padding=(2, 2)),
-            #nn.BatchNorm2d(3),
-
-
-
-            # nn.Conv2d(128, 64, kernel_size=(3, 3), padding=(2, 2)),
-            # nn.BatchNorm2d(64),
-            # nn.ELU(),
-            # Interpolate(scale_factor=2),
-            # nn.Conv2d(64, 3, kernel_size=(3, 3), padding=(2, 2)),
-            # nn.BatchNorm2d(3),
-            # nn.ELU(),
-            # Interpolate(scale_factor=2),
-            # nn.Conv2d(32, 16, kernel_size=(3, 3), padding=(2, 2)),
-            # nn.BatchNorm2d(16),
-            # nn.ELU(),
-            # nn.Conv2d(16, 3, kernel_size=(3, 3), padding=(2, 2)),
             nn.Tanh(),
             Flatten(),
             nn.Linear(in_features=3072, out_features=3072),
+
+            # clip mean (-1, 1)
             nn.Tanh()
         )
 
@@ -96,11 +81,12 @@ class VAE(nn.Module):
 
     def encode(self, x):
         h = self.encoder(x)
-        return self.encoder_mean(h), self.encoder_logvar(h)
+        return self.encoder_mean(h), self.encoder_var(h)
 
-    def reparameterize(self, mu, logvar):
-        # convert to the standard deviation
-        std = torch.exp(0.5 * logvar)
+    def reparameterize(self, mu, var):
+
+        # sigma = sqrt(var)
+        std = var.pow(0.5)
 
         # random sampling from normal distribution (0, 1)
         eps = torch.randn_like(std)
@@ -108,13 +94,19 @@ class VAE(nn.Module):
         # reparametrize
         return mu + eps * std
 
-    def loss_function(self, x_decoded_mean, x, z_mean, z_logvar):
+    def loss_function(self, x_decoded_mean, x, z, z_mean, z_var):
+
         x_flatten = self.flatten(x)
         logp_xz = -F.mse_loss(x_flatten, x_decoded_mean, reduction="sum")
-        KLD = -0.5 * (1 + z_logvar - z_mean.pow(2) - z_logvar.exp()).sum()
+
+        # KL divergence between prior of z (0, 1) and approximate posterior of z (z_mean, z_var)
+        # see Appendix B from VAE paper:
+        # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+        # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+        loss_kl = -0.5 * (1 + z_var.log() - z_mean.pow(2) - z_var).sum()
 
         # divide by batch size to get average value
-        ELBO = (logp_xz - KLD) / x.size(0)
+        ELBO = (logp_xz - loss_kl) / x.size(0)
 
         # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
         return -ELBO
@@ -123,10 +115,10 @@ class VAE(nn.Module):
         return self.decoder(z)
 
     def forward(self, x):
-        mean_z, logvar_z = self.encode(x)
-        z = self.reparameterize(mean_z, logvar_z)
+        mean_z, var_z = self.encode(x)
+        z = self.reparameterize(mean_z, var_z)
         mean_x = self.decode(z)
-        return z, mean_x, mean_z, logvar_z
+        return z, mean_x, mean_z, var_z
 
     def generate(self, z):
         return self.decode(z).view(z.size(0), 3, 32, 32)
