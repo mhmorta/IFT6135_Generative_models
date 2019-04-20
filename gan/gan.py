@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
@@ -122,7 +123,7 @@ def gan_eval():
   n_hidden = 3
   input_dim = 1
 
-  f0 = samplers.distributionGaussian(batch_size)
+  f0 = samplers.distribution3(batch_size)
   f1 = samplers.distribution4(batch_size)
 
   D = Discriminator(input_dim, hidden_size, n_hidden)
@@ -142,9 +143,9 @@ def gan_eval():
   
   xx = np.linspace(-5,5,1000)
   N = lambda x: np.exp(-x**2/2.)/((2*np.pi)**0.5)
-  f0_x_tensor = Variable( torch.from_numpy(np.float32(xx.reshape(batch_size, input_dim))) )
+  f0_x_tensor = Variable(torch.from_numpy(np.float32(xx.reshape(batch_size, input_dim))))
   D_x = D(f0_x_tensor)
-  f1_est = N(f0_x_tensor) * D_x / (1 - D_x)
+  f1_est = (N(f0_x_tensor) * D_x) / (1 - D_x)
 
 
   # Plot the discriminator output.
