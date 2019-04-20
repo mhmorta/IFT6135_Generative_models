@@ -2,175 +2,17 @@ import argparse
 import os
 import numpy as np
 import torch
-import torchvision.datasets
-import torchvision.transforms as transforms
+
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torch.utils.data import dataset
 from torch.autograd import Variable
 from torch.autograd import grad as torch_grad
 from torchvision.utils import save_image
 import samplers as samplers
 
-
-
-def get_data_loader(dataset_location, batch_size):
-
-    transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((.5, .5, .5), (.5, .5, .5))])
-
-
-    trainvalid = torchvision.datasets.SVHN(
-        dataset_location, split='train',
-        download=True,
-        transform=transform
-    )
-
-    trainset_size = int(len(trainvalid) * 0.9)
-    trainset, validset = dataset.random_split(
-        trainvalid,
-        [trainset_size, len(trainvalid) - trainset_size]
-    )
-
-    trainloader = torch.utils.data.DataLoader(
-        trainset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=2
-    )
-
-    validloader = torch.utils.data.DataLoader(
-        validset,
-        batch_size=batch_size,
-    )
-
-    testloader = torch.utils.data.DataLoader(
-        torchvision.datasets.SVHN(
-            dataset_location, split='test',
-            download=True,
-            transform=transform
-        ),
-        batch_size=batch_size,
-    )
-
-    return trainloader, validloader, testloader
-
-
-
-class Generator(nn.Module):
-    def __init__(self, channels, latent_dim, cuda):
-        super(Generator, self).__init__()
-        self.cuda = cuda
-
-        self.mlp = nn.Sequential(
-            nn.Linear(latent_dim, 128 * 4 * 4),
-            nn.ReLU()
-            )
-
-        self.convTranspose = nn.Sequential(
-            nn.ConvTranspose2d(128, 64, 4, 2, 1),
-            nn.BatchNorm2d(64),
-            nn.Dropout2d(0.25),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(64, 32, 3, 1, 1),
-            nn.BatchNorm2d(32),
-            nn.Dropout2d(0.25),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(32, 16, 4, 2, 1),
-            nn.BatchNorm2d(16),
-            nn.Dropout2d(0.25),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(16, 16, 3, 1, 1),
-            nn.BatchNorm2d(16),
-            # nn.Dropout2d(0.25),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(16, 8, 4, 2, 1),
-            nn.BatchNorm2d(8),
-            nn.Dropout2d(0.5),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(8, channels, 3, 1, 1),
-            nn.Tanh()
-            )
-        self.init_weights()
-    def init_weights(self):
-        for m in self.convTranspose:
-            if isinstance(m,nn.ConvTranspose2d):
-                nn.init.xavier_uniform_(m.weight)
-                m.bias.data.fill_(0.01)
-
-        if type(self.mlp) == nn.Linear:
-            nn.init.xavier_uniform_(self.mlp.weight)
-            self.mlp.bias.data.fill_(0.01)
-
-
-    def forward(self, input):
-        x = self.mlp(input)
-        x = x.view(-1, 128, 4, 4)
-        return self.convTranspose(x)
-
-class Discriminator(nn.Module):
-    def __init__(self, channels, latent_dim, cuda):
-        super(Discriminator, self).__init__()
-        self.cuda = cuda
-
-        self.conv = nn.Sequential( 
-            nn.Conv2d(channels, 8, 3, 1, 1),
-            nn.BatchNorm2d(8),
-            nn.Dropout2d(0.25),
-            nn.LeakyReLU(0.2),
-
-            nn.Conv2d(8, 16, 3, 2, 1),
-            nn.BatchNorm2d(16),
-            nn.Dropout2d(0.25),
-            nn.LeakyReLU(0.2),
-
-            # nn.Conv2d(16, 16, 3, 1, 1),
-            # nn.BatchNorm2d(16),
-            # nn.Dropout2d(0.5),
-            # nn.LeakyReLU(0.2),
-
-            nn.Conv2d(16, 32, 3, 2, 1),
-            nn.BatchNorm2d(32),
-            nn.Dropout2d(0.25),
-            nn.LeakyReLU(0.2),
-
-            nn.Conv2d(32, 64, 3, 1, 1),
-            nn.BatchNorm2d(64),
-            nn.Dropout2d(0.25),
-            nn.LeakyReLU(0.2),
-
-            nn.Conv2d(64, 128, 3, 2, 1),
-            nn.BatchNorm2d(128),
-            nn.Dropout2d(0.5),
-            nn.LeakyReLU(0.2),            
-            )
-        self.mlp = nn.Sequential(
-            nn.Linear(128 * 4 * 4, 1)
-            )
-
-        self.init_weights()
-    def init_weights(self):
-        for m in self.conv:
-            if isinstance(m,nn.Conv2d):
-                nn.init.xavier_uniform_(m.weight)
-                m.bias.data.fill_(0.01)
-
-        if type(self.mlp) == nn.Linear:
-            nn.init.xavier_uniform_(self.mlp.weight)
-            self.mlp.bias.data.fill_(0.01)
-
-    def forward(self, input):
-        x = self.conv(input)
-        x = x.view(-1, 128 * 4 * 4)
-        return self.mlp(x)
-
+from models import Generator, Discriminator
+from data_loaders import get_data_loader
 
 def sample_generator(Generator, num_samples, latent_dim, update_d, device):
     noise = Variable(torch.randn(num_samples, latent_dim), requires_grad=False).to(device)
@@ -180,6 +22,7 @@ def sample_generator(Generator, num_samples, latent_dim, update_d, device):
     gen_samples = gen_samples.view(-1, 3, 32, 32)
     save_image(gen_samples.data.view(num_samples, 3, 32, 32).cpu(), 'results/gs' + str(update_d) + '.png', nrow = 10)
 
+
 def loss_WD(Discriminator, D_x, D_y, batch_size, device):
     lam = 10
     D_loss_real = Discriminator(D_x.detach())
@@ -187,6 +30,7 @@ def loss_WD(Discriminator, D_x, D_y, batch_size, device):
     regularizer = gradient_penalty(Discriminator, D_x, D_y, batch_size, device)
     D_loss = (D_loss_real.mean() - D_loss_fake.mean()) - (lam * regularizer)
     return -D_loss 
+
 
 def gradient_penalty(Discriminator, p, q, batch_size, device):
     a = torch.randn(batch_size, 1, device=device, requires_grad = True)
@@ -202,6 +46,7 @@ def gradient_penalty(Discriminator, p, q, batch_size, device):
     gardient_pen = ((gradients.norm(2, dim=1) -1)**2).mean()
     return gardient_pen
 
+
 def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs, device):
     Discriminator.train()
     Generator.train()
@@ -209,15 +54,12 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
     # ## optimizers
     optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr*2, betas=(0.5, 0.999))
     optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr, betas=(0.5, 0.999))
-    
-
 
     for e in range(epochs):
         for i, (img, _) in enumerate(trainloader):
             batch_size = img.shape[0]
             update_d = e * batch_size + i + 1
             D_x = Variable(img.to(device))
-
 
             noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
             D_y = Variable(Generator(noise)).to(device)
@@ -254,8 +96,6 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
 
 
 if __name__ == "__main__":
-
-
     # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     cuda = torch.cuda.is_available()
@@ -277,8 +117,16 @@ if __name__ == "__main__":
 
     D = Discriminator(opt.channels, opt.latent_dim, device)
     G = Generator(opt.channels, opt.latent_dim, device)
+    
+    print(D)
+    print(G)
+    
     D.to(device)
     G.to(device)
 
     trainloader, validloader, testloader = get_data_loader('./data', 512)
     train(D, G, trainloader, opt.latent_dim, opt.batch_size, opt.epochs, device)
+
+    name = 'svhn_model'
+    torch.save(G.state_dict(), './results/models/gen_' + name + '.pt')
+    torch.save(D.state_dict(), './results/models/dis_' + name + '.pt')
