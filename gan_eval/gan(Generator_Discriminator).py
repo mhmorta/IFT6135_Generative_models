@@ -58,8 +58,6 @@ def get_data_loader(dataset_location, batch_size):
     return trainloader, validloader, testloader
 
 
-
-
 class Generator(nn.Module):
     def __init__(self, channels, latent_dim, cuda):
         super(Generator, self).__init__()
@@ -234,7 +232,7 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
             optimizer_D.step()
 
 
-            if update_d % 6 == 0:
+            if update_d % 5 == 0:
                 noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
                 D_y = Variable(Generator(noise)).to(device)
 
@@ -264,8 +262,8 @@ if __name__ == "__main__":
     # print (torch.cuda.current_device())
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=100, help="number of epochs of training")
-    parser.add_argument("--batch_size", type=int, default=256, help="size of the batches")
+    parser.add_argument("--epochs", type=int, default=200, help="number of epochs of training")
+    parser.add_argument("--batch_size", type=int, default=512, help="size of the batches")
     parser.add_argument("--optimizer", type=str, default='Adam', help="type of the optimizer")
     parser.add_argument("--lr", type=float, default=1e-9, help="adam: learning rate")
     parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")

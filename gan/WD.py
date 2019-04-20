@@ -117,8 +117,9 @@ def train_WD():
 	print(losses)
 	print ('Done...')
 
+	losses = np.array(losses)
 	plt.figure()
-	plt.plot(thetas,losses)
+	plt.scatter(thetas,losses)
 	plt.title('Wasserstein GAN')
 	plt.savefig('Wasserstein_D.png')
 	plt.close()
