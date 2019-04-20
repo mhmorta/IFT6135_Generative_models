@@ -5,6 +5,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torch
 import classify_svhn
+import numpy as np
 from classify_svhn import Classifier
 
 SVHN_PATH = "svhn"
@@ -71,12 +72,35 @@ def extract_features(classifier, data_loader):
                 yield h[i]
 
 def mean_covariance(extracted_feature):
-    mean = extracted_feature.mean(dim=1)
-    covariance = extracted_feature.var(dim=1)
-    return mean, covariance
+    mean = np.mean(extracted_feature)
+    var = np.var(extracted_feature)
+    return mean, var
 
 def calculate_fid_score(sample_feature_iterator,
                         testset_feature_iterator):
+    mu_q, var_q = [], []
+    mu_p, var_p = [], []
+
+    for i, x in enumerate(sample_feature_iterator):
+        if i == 1000:
+            break
+        m_q, v_q = mean_covariance(x)
+        mu_q.append(m_q)
+        var_q.append(v_q)
+
+    for i, x in enumerate(testset_feature_iterator):
+        if i == 1000:
+            break
+        m_p, v_p = mean_covariance(x)
+        mu_p.append(m_p)
+        var_p.append(v_p)
+    mu_p = np.array(mu_p)
+    mu_q = np.array(mu_q)
+    var_p = np.diag(var_p)
+    var_q = np.diag(var_q)
+    #d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(var_p + var_q - 2*np.sqrt((var_p*var_q)))
+    diff = mu_p - mu_q
+    d2 = (diff.dot(diff)) + np.trace(var_p + var_q - 2 * np.sqrt((var_p * var_q)))
     """
     To be implemented by you!
     """
@@ -102,10 +126,6 @@ def calculate_fid_score(sample_feature_iterator,
 
     # d2 = (diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - (2 * trace_covmean))
 
-    raise NotImplementedError(
-        "TO BE IMPLEMENTED."
-        "Part of Assignment 3 Quantitative Evaluations"
-    )
     return d2
 
 
