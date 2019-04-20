@@ -24,7 +24,7 @@ class Interpolate(nn.Module):
         self.scale_factor = scale_factor
 
     def forward(self, x):
-        x = self.interp(x, scale_factor=self.scale_factor, mode='bilinear')
+        x = self.interp(x, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
         return x
 
 
@@ -56,11 +56,11 @@ class VAE(nn.Module):
             nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
             nn.BatchNorm2d(64),
             nn.ELU(),
-            nn.UpsamplingBilinear2d(scale_factor=2),
+            Interpolate(scale_factor=2),
             nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
             nn.BatchNorm2d(32),
             nn.ELU(),
-            nn.UpsamplingBilinear2d(scale_factor=2),
+            Interpolate(scale_factor=2),
             nn.Conv2d(32, 16, kernel_size=(3, 3), padding=(2, 2)),
             nn.BatchNorm2d(16),
             nn.ELU(),
@@ -89,13 +89,14 @@ class VAE(nn.Module):
 
     def loss_function(self, x_decoded_mean, x, z_mean, z_logvar):
         x_flatten = self.flatten(x)
-        log_likelihood = F.mse_loss(x_flatten, x_decoded_mean, reduction="sum")
+        logp_xz = -F.mse_loss(x_flatten, x_decoded_mean, reduction="sum")
         KLD = -0.5 * (1 + z_logvar - z_mean.pow(2) - z_logvar.exp()).sum()
 
-        ELBO = -log_likelihood.sum() - KLD
+        # divide by batch size to get average value
+        ELBO = (logp_xz - KLD) / x.size(0)
 
         # optimizer will minimize loss function, thus in order to maximize ELBO we have to negate it, i.e loss = -ELBO
-        return -ELBO / x.size(0)
+        return -ELBO
 
     def decode(self, z):
         return self.decoder(z)
