@@ -72,27 +72,44 @@ class Generator(nn.Module):
         self.convTranspose = nn.Sequential(
             nn.ConvTranspose2d(128, 64, 4, 2, 1),
             nn.BatchNorm2d(64),
-            nn.ELU(),
+            nn.Dropout2d(0.25),
+            nn.ReLU(),
 
             nn.ConvTranspose2d(64, 32, 3, 1, 1),
             nn.BatchNorm2d(32),
-            nn.ELU(),
+            nn.Dropout2d(0.25),
+            nn.ReLU(),
 
             nn.ConvTranspose2d(32, 16, 4, 2, 1),
             nn.BatchNorm2d(16),
-            nn.ELU(),
+            nn.Dropout2d(0.25),
+            nn.ReLU(),
 
             nn.ConvTranspose2d(16, 16, 3, 1, 1),
             nn.BatchNorm2d(16),
-            nn.ELU(),
+            nn.Dropout2d(0.25),
+            nn.ReLU(),
 
             nn.ConvTranspose2d(16, 8, 4, 2, 1),
             nn.BatchNorm2d(8),
-            nn.ELU(),
+            nn.Dropout2d(0.5),
+            nn.ReLU(),
 
             nn.ConvTranspose2d(8, channels, 3, 1, 1),
             nn.Tanh()
             )
+        self.init_weights()
+    def init_weights(self):
+        for m in self.convTranspose:
+            if isinstance(m,nn.ConvTranspose2d):
+                nn.init.xavier_uniform_(m.weight)
+                m.bias.data.fill_(0.01)
+
+        if type(self.mlp) == nn.Linear:
+            nn.init.xavier_uniform_(self.mlp.weight)
+            self.mlp.bias.data.fill_(0.01)
+
+
     def forward(self, input):
         x = self.mlp(input)
         x = x.view(-1, 128, 4, 4)
@@ -105,32 +122,50 @@ class Discriminator(nn.Module):
 
         self.conv = nn.Sequential( 
             nn.Conv2d(channels, 8, 3, 1, 1),
-            nn.BatchNorm2d(8),
-            nn.ELU(),
+            # nn.BatchNorm2d(8),
+            nn.Dropout2d(0.25),
+            nn.LeakyReLU(0.2),
 
             nn.Conv2d(8, 16, 3, 2, 1),
             nn.BatchNorm2d(16),
-            nn.ELU(),
+            nn.Dropout2d(0.25),
+            nn.LeakyReLU(0.2),
 
-            nn.Conv2d(16, 16, 3, 1, 1),
-            nn.BatchNorm2d(16),
-            nn.ELU(),
+            # nn.Conv2d(16, 16, 3, 1, 1),
+            # nn.BatchNorm2d(16),
+            # nn.Dropout2d(0.5),
+            # nn.LeakyReLU(0.2),
 
             nn.Conv2d(16, 32, 3, 2, 1),
             nn.BatchNorm2d(32),
-            nn.ELU(),
+            nn.Dropout2d(0.25),
+            nn.LeakyReLU(0.2),
 
             nn.Conv2d(32, 64, 3, 1, 1),
             nn.BatchNorm2d(64),
-            nn.ELU(),
+            nn.Dropout2d(0.25),
+            nn.LeakyReLU(0.2),
 
             nn.Conv2d(64, 128, 3, 2, 1),
             nn.BatchNorm2d(128),
-            nn.ELU(),            
+            nn.Dropout2d(0.5),
+            nn.LeakyReLU(0.2),            
             )
         self.mlp = nn.Sequential(
             nn.Linear(128 * 4 * 4, 1)
             )
+
+        self.init_weights()
+    def init_weights(self):
+        for m in self.conv:
+            if isinstance(m,nn.Conv2d):
+                nn.init.xavier_uniform_(m.weight)
+                m.bias.data.fill_(0.01)
+
+        if type(self.mlp) == nn.Linear:
+            nn.init.xavier_uniform_(self.mlp.weight)
+            self.mlp.bias.data.fill_(0.01)
+
     def forward(self, input):
         x = self.conv(input)
         x = x.view(-1, 128 * 4 * 4)
@@ -139,13 +174,11 @@ class Discriminator(nn.Module):
 
 def sample_generator(Generator, num_samples, latent_dim, update_d, device):
     noise = Variable(torch.randn(num_samples, latent_dim), requires_grad=False).to(device)
-    # if cuda:
-    #    noise = noise.cuda()
     noise.require_grad = False
 
     gen_samples = Generator(noise)
     gen_samples = gen_samples.view(-1, 3, 32, 32)
-    save_image(gen_samples.data.view(num_samples, 3, 32, 32).cpu(), 'results/sample_' + str(update_d) + '.png', nrow = 10)
+    save_image(gen_samples.data.view(num_samples, 3, 32, 32).cpu(), 'results/gs' + str(update_d) + '.png', nrow = 8)
 
 def loss_WD(Discriminator, D_x, D_y, batch_size, device):
     lam = 10
@@ -174,8 +207,11 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
     Generator.train()
 
     # ## optimizers
-    optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr)
-    optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr)
+    # optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr*4)
+    # optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr)
+    optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr*4, betas=(0.5, 0.999))
+    optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+    
 
 
     for e in range(epochs):
@@ -198,7 +234,7 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
             optimizer_D.step()
 
 
-            if update_d % 5 == 0:
+            if update_d % 6 == 0:
                 noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
                 D_y = Variable(Generator(noise)).to(device)
 
@@ -228,8 +264,8 @@ if __name__ == "__main__":
     # print (torch.cuda.current_device())
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=200, help="number of epochs of training")
-    parser.add_argument("--batch_size", type=int, default=128, help="size of the batches")
+    parser.add_argument("--epochs", type=int, default=100, help="number of epochs of training")
+    parser.add_argument("--batch_size", type=int, default=256, help="size of the batches")
     parser.add_argument("--optimizer", type=str, default='Adam', help="type of the optimizer")
     parser.add_argument("--lr", type=float, default=1e-9, help="adam: learning rate")
     parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
@@ -243,7 +279,6 @@ if __name__ == "__main__":
 
     D = Discriminator(opt.channels, opt.latent_dim, device)
     G = Generator(opt.channels, opt.latent_dim, device)
-
     D.to(device)
     G.to(device)
 
