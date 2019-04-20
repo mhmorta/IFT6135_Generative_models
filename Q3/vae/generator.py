@@ -32,12 +32,13 @@ print("Loading model {}".format(saved_model))
 
 
 model = VAE(100).to(device)
-model.load_state_dict(torch.load(saved_model), strict=False)
+model.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
 model.eval()
 
 with torch.no_grad():
     sample = torch.randn(args.num_samples, 100).to(device)
     sample = model.generate(sample).cpu()
+    print('saving to ', '{}/sample_{}.png'.format(results_dir, args.num_samples))
     save_image(sample.view(args.num_samples, 3, 32, 32),
                '{}/sample_{}.png'.format(results_dir, args.num_samples))
 
