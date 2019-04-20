@@ -59,16 +59,6 @@ def get_data_loader(dataset_location, batch_size):
 
 
 
-# class Generator(nn.Module):
-#     def __init__(self, channels, latent_dim, cuda):
-#         super(Generator, self).__init__()
-#         self.cuda = cuda
-
-#         self.generator = nn.Sequential(
-#             nn.Linear(latent_dim, 128 * 4 * 4),
-#             nn.ReLU(),
-#             )
-
 class Generator(nn.Module):
     def __init__(self, channels, latent_dim, cuda):
         super(Generator, self).__init__()
@@ -217,8 +207,6 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
     Generator.train()
 
     # ## optimizers
-    # optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr*4)
-    # optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr)
     optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr*2, betas=(0.5, 0.999))
     optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr, betas=(0.5, 0.999))
     
