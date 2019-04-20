@@ -16,7 +16,7 @@ parser.add_argument('--max-batch-idx', type=int, default=99999, metavar='N',
                     help='only for debugging locally')
 parser.add_argument('--hidden-features', type=int, default=100, metavar='N',
                     help='latent variable size')
-parser.add_argument('--epochs', type=int, default=20, metavar='N',
+parser.add_argument('--epochs', type=int, default=30, metavar='N',
                     help='number of epochs to train (default: 20)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
@@ -44,19 +44,19 @@ def train(epoch):
     model.train()
     train_loss = 0
 
-    for batch_idx, (data, y) in enumerate(train_loader):
+    for batch_idx, (x, y) in enumerate(train_loader):
         if batch_idx > args.max_batch_idx:
             break
-        data = data.to(device)
+        x = x.to(device)
         optimizer.zero_grad()
-        _, x_decoded_mean, mu, logvar = model(data)
-        loss = model.loss_function(x_decoded_mean, data, mu, logvar)
+        z, x_decoded_mean, mu, var = model(x)
+        loss = model.loss_function(x_decoded_mean, x, z, mu, var)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
+                epoch, batch_idx * len(x), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
                 loss.item()))
 
@@ -70,13 +70,13 @@ def validate(epoch):
     valid_loss = 0
 
     with torch.no_grad():
-        for i, (data, y) in enumerate(valid_loader):
-            data = data.to(device)
-            z, x_decoded_mean, mu, logvar = model(data)
-            valid_loss += model.loss_function(x_decoded_mean, data, mu, logvar).item()
+        for i, (x, y) in enumerate(valid_loader):
+            x = x.to(device)
+            z, x_decoded_mean, mu, var = model(x)
+            valid_loss += model.loss_function(x_decoded_mean, x, z, mu, var).item()
             if i == 0:
-                n = min(data.size(0), 8)
-                comparison = torch.cat([data[:n], model.generate(z)[:n]])
+                n = min(x.size(0), 8)
+                comparison = torch.cat([x[:n], model.generate(z)[:n]])
                 save_image(comparison.cpu(),
                          '{}/reconstruction_{}.png'.format(results_dir, epoch), nrow=n)
 
@@ -89,10 +89,10 @@ def test():
     model.eval()
     test_loss = 0
     with torch.no_grad():
-        for i, (data, y) in enumerate(test_loader):
-            data = data.to(device)
-            z, x_decoded_mean, mu, logvar = model(data)
-            test_loss += model.loss_function(x_decoded_mean, data, mu, logvar).item()
+        for i, (x, y) in enumerate(test_loader):
+            x = x.to(device)
+            z, x_decoded_mean, mu, var = model(x)
+            test_loss += model.loss_function(x_decoded_mean, x, z, mu, var).item()
 
     test_loss /= (i + 1)
     print('====> Average Test loss: {:.4f}'.format(test_loss))
