@@ -2,7 +2,6 @@ import argparse
 import os
 import numpy as np
 import torch
-
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -19,8 +18,7 @@ def sample_generator(Generator, num_samples, latent_dim, update_d, device):
     noise.require_grad = False
 
     gen_samples = Generator(noise)
-    gen_samples = gen_samples.view(-1, 3, 32, 32)
-    save_image(gen_samples.data.view(num_samples, 3, 32, 32).cpu(), 'results/gs' + str(update_d) + '.png', nrow = 10)
+    save_image(gen_samples.data.view(num_samples, 3, 32, 32).cpu(), 'results/gs' + str(update_d) + '.png', nrow = 10, normalize=True)
 
 
 def loss_WD(Discriminator, D_x, D_y, batch_size, device):
@@ -63,6 +61,7 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
 
             noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
             D_y = Variable(Generator(noise)).to(device)
+            # D_y = D_y /2 + 0.5
             # if cuda:
             #     D_x = D_x.cuda()
             #     D_y = D_y.cuda()
