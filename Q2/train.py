@@ -5,8 +5,8 @@ import argparse
 import torch.utils.data
 from torch import optim
 from torchvision.utils import save_image
-from vae.model import VAE
-from vae.dataloader import binarized_mnist_data_loader, MNIST_IMAGE_SIZE
+from Q2.model import VAE
+from Q2.dataloader import binarized_mnist_data_loader, MNIST_IMAGE_SIZE
 import os
 
 
