@@ -62,10 +62,6 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
             noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
             D_y = Variable(Generator(noise)).to(device)
             # D_y = D_y /2 + 0.5
-            # if cuda:
-            #     D_x = D_x.cuda()
-            #     D_y = D_y.cuda()
-            #     noise = noise.cuda()
 
             loss_d = loss_WD(Discriminator, D_x, D_y, batch_size, device)
             Discriminator.zero_grad()
@@ -76,10 +72,6 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
             if update_d % 5 == 0:
                 noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
                 D_y = Variable(Generator(noise)).to(device)
-
-                # if cuda:
-                #     D_y = D_y.cuda()
-                #     noise = noise.cuda()
                 D_loss_fake = Discriminator(D_y)
                 loss_g = -(D_loss_fake.mean())
 
