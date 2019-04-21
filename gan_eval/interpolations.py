@@ -18,16 +18,7 @@ def save_interpolated_image(D_y,dim):
     path = 'results/interpolated/'+ str(dim) + '.png'
     save_image(gen_samples.data.view(-1, 3, 32, 32).cpu(), path, nrow = 1, normalize=True)
 
-
-if __name__ == "__main__":
-    torch.manual_seed(5)
-    cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if cuda else "cpu")
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
-    opt = parser.parse_args()
-
+def gan_experiment(device):
     batch_size = 1
     noise = Variable(torch.randn(1, opt.latent_dim)).to(device)
 
@@ -40,7 +31,23 @@ if __name__ == "__main__":
     for d in dims:
         zh = make_interpolation(noise, dim=d)
         D_y = Variable(G(noise)).to(device)
+
         save_interpolated_image(D_y, d)
+
+if __name__ == "__main__":
+    torch.manual_seed(5)
+    cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if cuda else "cpu")
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--evaluate", type=int, default="GAN", help="Do the evaluation for either GAN or VAE")
+    parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+    opt = parser.parse_args()
+
+    if opt.evaluate == "GAN":
+        gan_experiment(device)
+
+
 
     
 
