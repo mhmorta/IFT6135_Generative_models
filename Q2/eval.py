@@ -52,13 +52,12 @@ with torch.no_grad():
     model.eval()
     log_px_arr = []
     elbo_arr = []
-    _, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), 64)
+    _, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), 10000)
 
     for loader in [('validation', valid_loader), ('test', test_loader)]:
         print('Running on dataset:', loader[0])
         for batch_idx, data in enumerate(loader[1]):
             data = data.to(device)
-            # load examples from the split binarized mnist to save time because it takes too long to load & split
             z_samples, qz = sample_z(model, data, num_samples=200)
             ret = np.mean(eval_log_px(model, data, z_samples, qz))
             log_px_arr.append(ret)
