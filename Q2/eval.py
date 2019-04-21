@@ -34,7 +34,7 @@ def eval_log_px(model, x, z_samples, qz):
         x_recon = model.decode(z_sample)  # x_recon: (K x 1 x 28 x 28), input: (1 x 28 x 28)
         log_pxz = []
         for x_r in x_recon:
-            log_pxz.append(-F.binary_cross_entropy(x_r, x_input, reduction='sum'))
+            log_pxz.append(-F.binary_cross_entropy(x_r, x_input, reduction='sum').cpu())
         log_pxz = np.array(log_pxz)  # (K)
         log_pz = np.sum(np.log(pz_i), axis=-1)  # (K)
         log_qz = np.sum(np.log(qz_i), axis=-1)  # (K)
