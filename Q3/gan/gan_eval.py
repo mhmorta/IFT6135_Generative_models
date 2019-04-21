@@ -120,5 +120,5 @@ if __name__ == "__main__":
     train(D, G, trainloader, opt.latent_dim, opt.batch_size, opt.epochs, device)
 
     name = 'svhn_model'
-    torch.save(G.state_dict(), './results/models/gen_' + name + '.pt')
+    torch.save(G.state_dict(), './results/models/gan_' + name + '.pt')
     torch.save(D.state_dict(), './results/models/dis_' + name + '.pt')
