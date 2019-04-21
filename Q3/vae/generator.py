@@ -25,7 +25,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-results_dir = '{}/results'.format(current_dir)
+samples_dir = '{}/samples'.format(current_dir)
 saved_model = os.path.join(current_dir, 'saved_model', args.saved_model)
 print("Loading model {}".format(saved_model))
 
@@ -38,9 +38,8 @@ with torch.no_grad():
     sample = torch.randn(args.num_samples, 100).to(device)
     sample = model.generate(sample).cpu()
     for idx, img in enumerate(sample.view(args.num_samples, 3, 32, 32)):
-        file_name = '{}/sample_{}.png'.format(results_dir, idx)
-        print(file_name)
-        #print('saving to', file_name)
+        file_name = '{}/sample_{}.png'.format(samples_dir, idx)
+        print(idx, 'saving to', file_name)
         save_image(img, file_name, normalize=True)
 
 
