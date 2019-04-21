@@ -123,7 +123,7 @@ if __name__ == "__main__":
     D.to(device)
     G.to(device)
 
-    trainloader, validloader, testloader = get_data_loader('./data', 512)
+    trainloader, validloader, testloader = get_data_loader('./svhn', 512)
     train(D, G, trainloader, opt.latent_dim, opt.batch_size, opt.epochs, device)
 
     name = 'svhn_model'
