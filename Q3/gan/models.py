@@ -111,3 +111,4 @@ class Discriminator(nn.Module):
     def forward(self, input):
         x = self.conv(input)
         x = x.view(-1, 128 * 4 * 4)
+        return self.mlp(x)

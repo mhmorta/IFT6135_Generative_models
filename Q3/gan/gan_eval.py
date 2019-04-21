@@ -18,6 +18,7 @@ def sample_generator(Generator, num_samples, latent_dim, update_d, device):
     noise.require_grad = False
 
     gen_samples = Generator(noise)
+    gen_samples = gen_samples.view(-1, 3, 32, 32)
     save_image(gen_samples.data.view(num_samples, 3, 32, 32).cpu(), 'results/gs' + str(update_d) + '.png', nrow = 10, normalize=True)
 
 
