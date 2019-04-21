@@ -39,7 +39,8 @@ with torch.no_grad():
     sample = model.generate(sample).cpu()
     for idx, img in enumerate(sample.view(args.num_samples, 3, 32, 32)):
         file_name = '{}/sample_{}.png'.format(results_dir, idx)
+        print(file_name)
         #print('saving to', file_name)
-        save_image(img, file_name)
+        save_image(img, file_name, normalize=True)
 
 

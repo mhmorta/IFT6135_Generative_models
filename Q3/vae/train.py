@@ -78,7 +78,7 @@ def validate(epoch):
                 n = min(x.size(0), 8)
                 comparison = torch.cat([x[:n], model.generate(z)[:n]])
                 save_image(comparison.cpu(),
-                         '{}/reconstruction_{}.png'.format(results_dir, epoch), nrow=n)
+                         '{}/reconstruction_{}.png'.format(results_dir, epoch), nrow=n, normalize=True)
 
     valid_loss /= (i + 1)
     print('====> Average Validation loss: {:.4f}'.format(valid_loss))
@@ -104,7 +104,7 @@ def sample(epoch):
         sample = torch.randn(args.batch_size, args.hidden_features).to(device)
         sample = model.generate(sample).cpu()
         save_image(sample.view(args.batch_size, 3, 32, 32),
-                   '{}/sample_{}.png'.format(results_dir, epoch))
+                   '{}/sample_{}.png'.format(results_dir, epoch), normalize=True)
 
 if __name__ == '__main__':
 
