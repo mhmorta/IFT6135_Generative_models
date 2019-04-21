@@ -1,4 +1,67 @@
+import torch
 import torch.nn as nn
+import torch.utils.data
+from torch.nn import functional as F
+
+
+
+class Flatten(nn.Module):
+    def forward(self, input):
+        return input.view(input.size(0), -1)
+
+
+class UnFlatten(nn.Module):
+    def forward(self, input, size=512):
+        return input.view(input.size(0), size, 1, 1)
+
+
+class Interpolate(nn.Module):
+    def __init__(self, scale_factor):
+        super(Interpolate, self).__init__()
+        self.interp = nn.functional.interpolate
+        self.scale_factor = scale_factor
+
+    def forward(self, x):
+        x = self.interp(x, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
+        return x
+
+
+# class Generator(nn.Module):
+#     def __init__(self, channels, latent_dim, cuda):
+#         super(Generator, self).__init__()
+#         self.cuda = cuda
+#
+#         self.decoder = nn.Sequential(
+#             nn.Linear(in_features=latent_dim, out_features=512),
+#             nn.Tanh(),
+#             UnFlatten(),
+#             nn.Conv2d(512, 256, kernel_size=(5, 5), padding=(4, 4)),
+#             nn.BatchNorm2d(256),
+#             nn.Tanh(),
+#             Interpolate(scale_factor=2),
+#             nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
+#             nn.BatchNorm2d(64),
+#             nn.Tanh(),
+#             Interpolate(scale_factor=2),
+#             nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
+#             nn.BatchNorm2d(32),
+#             nn.Tanh(),
+#             nn.Conv2d(32, 3, kernel_size=(3, 3), padding=(2, 2)),
+#             nn.BatchNorm2d(3),
+#             nn.Tanh(),
+#             Flatten(),
+#             nn.Linear(in_features=3072, out_features=3072),
+#
+#             # clip mean (-1, 1)
+#             nn.Tanh()
+#         )
+#
+#         self.flatten = Flatten()
+#
+#     def forward(self, input):
+#         x = self.decoder(input)
+#         return x
+
 
 class Generator(nn.Module):
     def __init__(self, channels, latent_dim, cuda):
