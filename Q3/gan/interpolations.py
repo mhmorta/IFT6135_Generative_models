@@ -18,9 +18,10 @@ def save_interpolated_image(D_y,dim):
     path = 'results/interpolated/'+ str(dim) + '.png'
     save_image(gen_samples.data.view(-1, 3, 32, 32).cpu(), path, nrow = 1, normalize=True)
 
-def gan_experiment(device):
+def gan_disentangled_representation_experiment(device):
     batch_size = 1
-    noise = Variable(torch.randn(1, opt.latent_dim)).to(device)
+    latent_dim=100
+    noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
 
     G = Generator(channels=3, latent_dim=100, cuda=device).to(device)
 
@@ -34,6 +35,22 @@ def gan_experiment(device):
 
         save_interpolated_image(D_y, d)
 
+def gan_interpolating_experiment(device):
+    batch_size = 2
+    latent_dim = 100
+    z = Variable(torch.randn(batch_size, latent_dim)).to(device)
+
+    G = Generator(channels=3, latent_dim=100, cuda=device).to(device)
+
+    saved_model = './results/models/gen_svhn_model.pt'
+    G.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
+
+    a_list = np.arange(0, 1, 0.1)
+    for a in a_list:
+        zh = a*z[0] + (1-a)*z[1]
+
+
+
 if __name__ == "__main__":
     torch.manual_seed(5)
     cuda = torch.cuda.is_available()
@@ -45,12 +62,7 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     if opt.evaluate == "GAN":
-        gan_experiment(device)
-
-
-
-    
-
+        gan_interpolating_experiment(device)
 
 
     # print(zh)
