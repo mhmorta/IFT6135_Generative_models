@@ -26,7 +26,6 @@ class Interpolate(nn.Module):
         return x
 
 
-<<<<<<< HEAD
 # class Generator(nn.Module):
 #     def __init__(self, channels, latent_dim, cuda):
 #         super(Generator, self).__init__()
@@ -93,8 +92,6 @@ class Generator(nn.Module):
        return self.conv(out)
 
 
-=======
->>>>>>> cc2b438b443210703f1c25e2106e1e7f5aecd6df
 # class Generator(nn.Module):
 #     def __init__(self, channels, latent_dim, cuda):
 #         super(Generator, self).__init__()
@@ -244,8 +241,4 @@ class Discriminator(nn.Module):
     def forward(self, input):
         x = self.conv(input)
         x = x.view(-1, 128 * 4 * 4)
-<<<<<<< HEAD
-        return x
-=======
         return self.mlp(x)
->>>>>>> cc2b438b443210703f1c25e2106e1e7f5aecd6df
