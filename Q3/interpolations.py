@@ -88,7 +88,7 @@ def VAE_disentangled_representation_experiment(device):
     saved_model = './vae/saved_model/params_epoch_24_loss_86.3193.pt'
     model.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
 
-    dims = [0,20]
+    dims = [0,20,40,60,80]
     outputs = []
     for d in dims:
         zh = make_interpolation(noise, dim=d)
