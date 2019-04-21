@@ -1,12 +1,12 @@
 import argparse
 import os
-from scipy import linalg
 import torchvision
 import torchvision.transforms as transforms
 import torch
 import classify_svhn
 import numpy as np
 from classify_svhn import Classifier
+
 
 SVHN_PATH = "svhn"
 PROCESS_BATCH_SIZE = 32
@@ -71,60 +71,31 @@ def extract_features(classifier, data_loader):
             for i in range(h.shape[0]):
                 yield h[i]
 
-def mean_covariance(extracted_feature):
-    mean = np.mean(extracted_feature)
-    var = np.var(extracted_feature)
-    return mean, var
 
 def calculate_fid_score(sample_feature_iterator,
                         testset_feature_iterator):
-    mu_q, var_q = [], []
-    mu_p, var_p = [], []
 
+    q, p = [], []
+
+    max_files = 1000
     for i, x in enumerate(sample_feature_iterator):
-        if i == 1000:
+        if i == max_files:
             break
-        m_q, v_q = mean_covariance(x)
-        mu_q.append(m_q)
-        var_q.append(v_q)
+        q.append(x)
 
     for i, x in enumerate(testset_feature_iterator):
-        if i == 1000:
+        if i == max_files:
             break
-        m_p, v_p = mean_covariance(x)
-        mu_p.append(m_p)
-        var_p.append(v_p)
-    mu_p = np.array(mu_p)
-    mu_q = np.array(mu_q)
-    var_p = np.diag(var_p)
-    var_q = np.diag(var_q)
-    #d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(var_p + var_q - 2*np.sqrt((var_p*var_q)))
-    diff = mu_p - mu_q
-    d2 = (diff.dot(diff)) + np.trace(var_p + var_q - 2 * np.sqrt((var_p * var_q)))
-    """
-    To be implemented by you!
-    """
-    # assert mu1.shape == mu2.shape
-    # assert sigma1.shape == sigma2.shape
+        p.append(x)
 
-    # diff = mu1 - mu2
+    q = np.array(q)
+    p = np.array(p)
 
-    # covmean, _ = linalg.sqrtm(sigma1.dot(sigma2), disp = False)
-    # if not np.isfinite(covmean).all():
-    #     msg = ('fid calculation produces singular product')
-    #     print (msg)
-    #     offset = np.eye(sigma1.shape[0]) * 1e-6
-    #     covmean = linalg.sqrtm((sigma1 + offset).dot(sigma2 + offset))
-
-    # if np.iscomplexobj(covmean):
-    #     if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
-    #         m = np.max(np.abs(covmean.imag))
-    #         raise ValueError('Imaginary component {}'.format(m))
-    #     covmean = covmean.real
-
-    # trace_covmean = np.trace(covmean)
-
-    # d2 = (diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - (2 * trace_covmean))
+    mu_p = np.mean(p, axis=0)
+    mu_q = np.mean(q, axis=0)
+    covar_p = np.diag(np.var(p, axis=0))
+    covar_q = np.diag(np.var(q, axis=0))
+    d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(covar_p + covar_q - 2*np.sqrt((covar_p*covar_q)))
 
     return d2
 

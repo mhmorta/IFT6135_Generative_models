@@ -1,5 +1,5 @@
-from vae.dataloader import binarized_mnist_data_loader
-from vae.train import current_dir, args
+from Q2.dataloader import binarized_mnist_data_loader
+from Q2.train import current_dir, args
 import torch
 
 _, valid_loader, _ = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), args.batch_size)

@@ -5,7 +5,7 @@ from scipy.stats import norm
 from torch.nn import functional as F
 import os
 
-from vae.train import model, device, current_dir
+from Q2.train import model, device, current_dir
 
 
 # based on
