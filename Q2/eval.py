@@ -3,7 +3,6 @@ import torch
 from scipy.special import logsumexp
 from scipy.stats import norm
 from torch.nn import functional as F
-import os
 
 from Q2.dataloader import binarized_mnist_data_loader
 from Q2.train import model, device, current_dir
@@ -46,27 +45,28 @@ def eval_log_px(model, x, z_samples, qz):
     return ret
 
 
-with torch.no_grad():
-    print('loading trained model')
-    model.load_state_dict(torch.load('{}/best_model/params_epoch_20_loss_94.4314.pt'.format(current_dir), map_location=device))
-    model.eval()
-    log_px_arr = []
-    elbo_arr = []
-    _, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), 10000)
+if __name__ == '__main__':
+    with torch.no_grad():
+        print('loading trained model')
+        model.load_state_dict(torch.load('{}/best_model/params_epoch_20_loss_94.4314.pt'.format(current_dir), map_location=device))
+        model.eval()
+        log_px_arr = []
+        elbo_arr = []
+        _, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), 64)
 
-    for loader in [('validation', valid_loader), ('test', test_loader)]:
-        print('Running on dataset:', loader[0])
-        for batch_idx, data in enumerate(loader[1]):
-            data = data.to(device)
-            z_samples, qz = sample_z(model, data, num_samples=200)
-            ret = np.mean(eval_log_px(model, data, z_samples, qz))
-            log_px_arr.append(ret)
-            elbo = -model.loss_function(data, *model(data)).item()
-            elbo_arr.append(elbo)
-            if batch_idx % 10 == 0:
-                print('Batch id', batch_idx)
-                print('ELBO:', elbo)
-                print('log p(x): ', ret)
-        print('===FINAL===', loader[0])
-        print('log p(x)={}, ELBO={}'.format(np.mean(log_px_arr), np.mean(elbo_arr)))
+        for loader in [('validation', valid_loader), ('test', test_loader)]:
+            print('Running on dataset:', loader[0])
+            for batch_idx, data in enumerate(loader[1]):
+                data = data.to(device)
+                z_samples, qz = sample_z(model, data, num_samples=200)
+                ret = np.mean(eval_log_px(model, data, z_samples, qz))
+                log_px_arr.append(ret)
+                elbo = -model.loss_function(data, *model(data)).item()
+                elbo_arr.append(elbo)
+                if batch_idx % 10 == 0:
+                    print('Batch id', batch_idx)
+                    print('ELBO:', elbo)
+                    print('log p(x): ', ret)
+            print('===FINAL===', loader[0])
+            print('log p(x)={}, ELBO={}'.format(np.mean(log_px_arr), np.mean(elbo_arr)))
 

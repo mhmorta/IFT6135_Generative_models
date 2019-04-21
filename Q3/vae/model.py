@@ -112,7 +112,29 @@ class VAE(nn.Module):
         return -ELBO
 
     def decode(self, z):
-        return self.decoder(z)
+        #return self.decoder(z)
+        z #torch.Size([64, 100])
+        z = nn.Linear(in_features=100, out_features=512).forward(z) #torch.Size([64, 512])
+        z = nn.Tanh().forward(z)
+        z = UnFlatten().forward(z) #torch.Size([64, 512, 1, 1])
+        z = nn.Conv2d(512, 256, kernel_size=(5, 5), padding=(4, 4)).forward(z) #torch.Size([64, 256, 5, 5])
+        z = nn.BatchNorm2d(256).forward(z)
+        z = nn.Tanh().forward(z)
+        z = Interpolate(scale_factor=2).forward(z) #torch.Size([64, 256, 10, 10])
+        z = nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)).forward(z) # torch.Size([64, 64, 14, 14])
+        z = nn.BatchNorm2d(64).forward(z)
+        z = nn.Tanh().forward(z)
+        z = Interpolate(scale_factor=2).forward(z) #torch.Size([64, 64, 28, 28])
+        z = nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)).forward(z) # torch.Size([64, 32, 30, 30])
+        z = nn.BatchNorm2d(32).forward(z)
+        z = nn.Tanh().forward(z)
+        z = nn.Conv2d(32, 3, kernel_size=(3, 3), padding=(2, 2)).forward(z) #torch.Size([64, 3, 32, 32])
+        z = nn.BatchNorm2d(3).forward(z)
+        z = nn.Tanh().forward(z)
+        z = Flatten().forward(z) # torch.Size([64, 3072])
+        z = nn.Linear(in_features=3072, out_features=3072).forward(z) # torch.Size([64, 3072])
+        return z
+
 
     def forward(self, x):
         mean_z, var_z = self.encode(x)
