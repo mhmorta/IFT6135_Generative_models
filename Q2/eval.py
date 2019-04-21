@@ -29,8 +29,9 @@ def sample_z(model, x, num_samples):
 def eval_log_px(model, x, z_samples, qz):
     pz = norm.pdf(z_samples.cpu())  # (M x K x L)
     ret = []
+    # input: (1 x 28 x 28)
     for x_input, z_sample, pz_i, qz_i in zip(x, z_samples, pz, qz):
-        x_recon = model.decode(z_sample)  # x_recon: (K x 1 x 28 x 28), input: (1 x 28 x 28)
+        x_recon = model.decode(z_sample)  # x_recon: (K x 1 x 28 x 28)
         log_pxz = []
         for x_r in x_recon:
             log_pxz.append(-F.binary_cross_entropy(x_r, x_input, reduction='sum').cpu())
