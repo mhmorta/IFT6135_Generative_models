@@ -25,7 +25,7 @@ device = torch.device("cuda" if args.cuda else "cpu")
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-samples_dir = '{}/samples'.format(current_dir)
+samples_dir = '{}/samples/data'.format(current_dir)
 saved_model = os.path.join(current_dir, 'saved_model', args.saved_model)
 print("Loading model {}".format(saved_model))
 
