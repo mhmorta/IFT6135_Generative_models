@@ -5,6 +5,7 @@ from scipy.stats import norm
 from torch.nn import functional as F
 import os
 
+from Q2.dataloader import binarized_mnist_data_loader
 from Q2.train import model, device, current_dir
 
 
@@ -33,7 +34,7 @@ def eval_log_px(model, x, z_samples, qz):
         x_recon = model.decode(z_sample)  # x_recon: (K x 1 x 28 x 28), input: (1 x 28 x 28)
         log_pxz = []
         for x_r in x_recon:
-            log_pxz.append(-F.binary_cross_entropy(x_r, x_input, reduction='sum'))
+            log_pxz.append(-F.binary_cross_entropy(x_r, x_input, reduction='sum').cpu())
         log_pxz = np.array(log_pxz)  # (K)
         log_pz = np.sum(np.log(pz_i), axis=-1)  # (K)
         log_qz = np.sum(np.log(qz_i), axis=-1)  # (K)
@@ -51,19 +52,21 @@ with torch.no_grad():
     model.eval()
     log_px_arr = []
     elbo_arr = []
-    dir_name = '{}/split_mnist/batch_size_64/'.format(current_dir)
-    for file in sorted(os.listdir(os.fsencode(dir_name))):
-        filename = os.fsdecode(file)
-        print('Batch for', filename)
-        # load examples from the split binarized mnist to save time because it takes too long to load & split
-        X = torch.load('{}/{}'.format(dir_name, filename), map_location=device)
-        z_samples, qz = sample_z(model, X, num_samples=200)
-        ret = np.mean(eval_log_px(model, X, z_samples, qz))
-        print('log p(x): ', ret)
-        log_px_arr.append(ret)
-        elbo = -model.loss_function(X, *model(X)).item()
-        print('ELBO:', elbo)
-        elbo_arr.append(elbo)
-    print('===FINAL===')
-    print('log p(x)={}, ELBO={}'.format(np.mean(log_px_arr), np.mean(elbo_arr)))
+    _, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), 10000)
+
+    for loader in [('validation', valid_loader), ('test', test_loader)]:
+        print('Running on dataset:', loader[0])
+        for batch_idx, data in enumerate(loader[1]):
+            data = data.to(device)
+            z_samples, qz = sample_z(model, data, num_samples=200)
+            ret = np.mean(eval_log_px(model, data, z_samples, qz))
+            log_px_arr.append(ret)
+            elbo = -model.loss_function(data, *model(data)).item()
+            elbo_arr.append(elbo)
+            if batch_idx % 10 == 0:
+                print('Batch id', batch_idx)
+                print('ELBO:', elbo)
+                print('log p(x): ', ret)
+        print('===FINAL===', loader[0])
+        print('log p(x)={}, ELBO={}'.format(np.mean(log_px_arr), np.mean(elbo_arr)))
 

@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 import torch
 import classify_svhn
 import numpy as np
+from scipy import linalg
 from classify_svhn import Classifier
 
 
@@ -93,9 +94,12 @@ def calculate_fid_score(sample_feature_iterator,
 
     mu_p = np.mean(p, axis=0)
     mu_q = np.mean(q, axis=0)
-    covar_p = np.diag(np.var(p, axis=0))
-    covar_q = np.diag(np.var(q, axis=0))
-    d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(covar_p + covar_q - 2*np.sqrt((covar_p*covar_q)))
+    covar_p = np.cov(p, rowvar=False)
+    covar_q = np.cov(q, rowvar=False)
+    sqrtm = linalg.sqrtm(covar_p.dot(covar_q))
+    # this trick from https://github.com/mseitzer/pytorch-fid/blob/master/fid_score.py
+    sqrtm = sqrtm.real if np.iscomplexobj(sqrtm) else sqrtm
+    d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(covar_p + covar_q - 2*sqrtm)
 
     return d2
 

@@ -2,6 +2,7 @@ from Q2.dataloader import binarized_mnist_data_loader
 from Q2.train import current_dir, args
 import torch
 
+# splits MNIST dataset in chunks of batches in order to save time when loading
 _, valid_loader, _ = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), args.batch_size)
 
 for batch_idx, data in enumerate(valid_loader):
