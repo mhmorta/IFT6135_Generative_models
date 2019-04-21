@@ -18,6 +18,7 @@ def sample_generator(Generator, num_samples, latent_dim, update_d, device):
     noise.require_grad = False
 
     gen_samples = Generator(noise)
+    gen_samples = gen_samples.view(-1, 3, 32, 32)
     save_image(gen_samples.data.view(num_samples, 3, 32, 32).cpu(), 'results/gs' + str(update_d) + '.png', nrow = 10, normalize=True)
 
 
@@ -36,10 +37,10 @@ def gradient_penalty(Discriminator, p, q, batch_size, device):
     a_total = a_total.view(p.size())
 
     z = a_total * p + (1 - a_total) * q
-    z_prob = Discriminator(z)
+    z_prob = Discriminator(z)                                                                                                               
 
     gradients = torch_grad(z_prob.mean(), z, create_graph=True, retain_graph=True)[0]
-    gradients = gradients.view(gradients.size(0), -1)
+    gradients = gradients.view(gradients.size(0), -1)                           
 
     gardient_pen = ((gradients.norm(2, dim=1) -1)**2).mean()
     return gardient_pen
@@ -50,7 +51,7 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
     Generator.train()
 
     # ## optimizers
-    optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr*2, betas=(0.5, 0.999))
+    optimizer_G = torch.optim.Adam(Generator.parameters(), lr=1e-4, betas=(0.5, 0.999))
     optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr, betas=(0.5, 0.999))
 
     for e in range(epochs):
@@ -94,9 +95,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=200, help="number of epochs of training")
-    parser.add_argument("--batch_size", type=int, default=512, help="size of the batches")
+    parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
     parser.add_argument("--optimizer", type=str, default='Adam', help="type of the optimizer")
-    parser.add_argument("--lr", type=float, default=1e-9, help="adam: learning rate")
+    parser.add_argument("--lr", type=float, default=1e-3, help="adam: learning rate")
     parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
     parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
@@ -109,8 +110,8 @@ if __name__ == "__main__":
     D = Discriminator(opt.channels, opt.latent_dim, device)
     G = Generator(opt.channels, opt.latent_dim, device)
     
-    print(D)
-    print(G)
+    # print(D)
+    # print(G)
     
     D.to(device)
     G.to(device)
@@ -119,5 +120,5 @@ if __name__ == "__main__":
     train(D, G, trainloader, opt.latent_dim, opt.batch_size, opt.epochs, device)
 
     name = 'svhn_model'
-    torch.save(G.state_dict(), './results/models/gen_' + name + '.pt')
+    torch.save(G.state_dict(), './results/models/gan_' + name + '.pt')
     torch.save(D.state_dict(), './results/models/dis_' + name + '.pt')
