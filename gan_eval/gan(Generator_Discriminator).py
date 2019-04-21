@@ -57,17 +57,13 @@ def get_data_loader(dataset_location, batch_size):
 
     return trainloader, validloader, testloader
 
-
-
 # class Generator(nn.Module):
 #     def __init__(self, channels, latent_dim, cuda):
 #         super(Generator, self).__init__()
 #         self.cuda = cuda
 
-#         self.generator = nn.Sequential(
-#             nn.Linear(latent_dim, 128 * 4 * 4),
-#             nn.ReLU(),
-#             )
+#         self.
+
 
 class Generator(nn.Module):
     def __init__(self, channels, latent_dim, cuda):
@@ -97,7 +93,7 @@ class Generator(nn.Module):
 
             nn.ConvTranspose2d(16, 16, 3, 1, 1),
             nn.BatchNorm2d(16),
-            # nn.Dropout2d(0.25),
+            nn.Dropout2d(0.25),
             nn.ReLU(),
 
             nn.ConvTranspose2d(16, 8, 4, 2, 1),
@@ -162,7 +158,8 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),            
             )
         self.mlp = nn.Sequential(
-            nn.Linear(128 * 4 * 4, 1)
+            nn.Linear(128 * 4 * 4, 1),
+            nn.Sigmoid()
             )
 
         self.init_weights()
@@ -188,6 +185,7 @@ def sample_generator(Generator, num_samples, latent_dim, update_d, device):
 
     gen_samples = Generator(noise)
     gen_samples = gen_samples.view(-1, 3, 32, 32)
+    # gen_samples = (gen_samples / 2 ) + 0.5
     save_image(gen_samples.data.view(num_samples, 3, 32, 32).cpu(), 'results/gs' + str(update_d) + '.png', nrow = 10)
 
 def loss_WD(Discriminator, D_x, D_y, batch_size, device):
@@ -219,8 +217,8 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
     # ## optimizers
     # optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr*4)
     # optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr)
-    optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr*2, betas=(0.5, 0.999))
-    optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr, betas=(0.5, 0.999))
+    optimizer_G = torch.optim.Adam(Generator.parameters(), lr=opt.lr*4, betas=(0.5, 0.995))
+    optimizer_D = torch.optim.Adam(Discriminator.parameters(), lr=opt.lr, betas=(0.5, 0.995))
     
 
 
@@ -233,10 +231,6 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
 
             noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
             D_y = Variable(Generator(noise)).to(device)
-            # if cuda:
-            #     D_x = D_x.cuda()
-            #     D_y = D_y.cuda()
-            #     noise = noise.cuda()
 
             loss_d = loss_WD(Discriminator, D_x, D_y, batch_size, device)
             Discriminator.zero_grad()
@@ -247,10 +241,8 @@ def train(Discriminator, Generator, trainloader, latent_dim, batch_size, epochs,
             if update_d % 5 == 0:
                 noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
                 D_y = Variable(Generator(noise)).to(device)
+                # D_y = (D_y / 2) +0.5 
 
-                # if cuda:
-                #     D_y = D_y.cuda()
-                #     noise = noise.cuda()
                 D_loss_fake = Discriminator(D_y)
                 loss_g = -(D_loss_fake.mean())
 
@@ -274,8 +266,8 @@ if __name__ == "__main__":
     # print (torch.cuda.current_device())
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=200, help="number of epochs of training")
-    parser.add_argument("--batch_size", type=int, default=512, help="size of the batches")
+    parser.add_argument("--epochs", type=int, default=100, help="number of epochs of training")
+    parser.add_argument("--batch_size", type=int, default=256, help="size of the batches")
     parser.add_argument("--optimizer", type=str, default='Adam', help="type of the optimizer")
     parser.add_argument("--lr", type=float, default=1e-9, help="adam: learning rate")
     parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")

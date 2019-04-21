@@ -80,6 +80,21 @@ def calculate_fid_score(sample_feature_iterator,
     """
     To be implemented by you!
     """
+    mu_p = mu_q = []
+
+
+
+    for x in sample_feature_iterator:
+        mu1, sigma1 = mean_covariance(x)
+
+    for x in testset_feature_iterator:
+        mu2, sigma2 = mean_covariance(x)
+
+
+
+
+
+
     # assert mu1.shape == mu2.shape
     # assert sigma1.shape == sigma2.shape
 
