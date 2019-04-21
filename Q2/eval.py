@@ -56,15 +56,16 @@ with torch.no_grad():
 
     for loader in [('validation', valid_loader), ('test', test_loader)]:
         print('Running on dataset:', loader[0])
-        for batch_idx, X in enumerate(loader[1]):
+        for batch_idx, data in enumerate(loader[1]):
+            data = data.to(device)
             if batch_idx % 100 == 0:
                 print('Batch id', batch_idx)
             # load examples from the split binarized mnist to save time because it takes too long to load & split
-            z_samples, qz = sample_z(model, X, num_samples=200)
-            ret = np.mean(eval_log_px(model, X, z_samples, qz))
+            z_samples, qz = sample_z(model, data, num_samples=200)
+            ret = np.mean(eval_log_px(model, data, z_samples, qz))
             print('log p(x): ', ret)
             log_px_arr.append(ret)
-            elbo = -model.loss_function(X, *model(X)).item()
+            elbo = -model.loss_function(data, *model(data)).item()
             print('ELBO:', elbo)
             elbo_arr.append(elbo)
         print('===FINAL===', loader[0])
