@@ -39,10 +39,6 @@ def eval_log_px(model, x, z_samples, qz):
         log_pz = np.sum(np.log(pz_i), axis=-1)  # (K)
         log_qz = np.sum(np.log(qz_i), axis=-1)  # (K)
         argsum = log_pxz + log_pz - log_qz  # (K)
-        print('argsum', argsum)
-        print('log_pxz', log_pxz)
-        print('log_pz', log_pz)
-        print('log_qz', log_qz)
         log_px = -np.log(len(argsum)) + logsumexp(argsum)
         ret.append(log_px)
 
