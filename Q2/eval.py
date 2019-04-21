@@ -58,16 +58,16 @@ with torch.no_grad():
         print('Running on dataset:', loader[0])
         for batch_idx, data in enumerate(loader[1]):
             data = data.to(device)
-            if batch_idx % 100 == 0:
-                print('Batch id', batch_idx)
             # load examples from the split binarized mnist to save time because it takes too long to load & split
             z_samples, qz = sample_z(model, data, num_samples=200)
             ret = np.mean(eval_log_px(model, data, z_samples, qz))
-            print('log p(x): ', ret)
             log_px_arr.append(ret)
             elbo = -model.loss_function(data, *model(data)).item()
-            print('ELBO:', elbo)
             elbo_arr.append(elbo)
+            if batch_idx % 10 == 0:
+                print('Batch id', batch_idx)
+                print('ELBO:', elbo)
+                print('log p(x): ', ret)
         print('===FINAL===', loader[0])
         print('log p(x)={}, ELBO={}'.format(np.mean(log_px_arr), np.mean(elbo_arr)))
 
