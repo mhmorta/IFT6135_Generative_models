@@ -7,4 +7,5 @@ venv/
 .vscode/
 Q2/binarized_mnist/*
 Q2/results/*.png
+Q3/svhn
 *.mat

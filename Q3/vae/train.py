@@ -106,6 +106,7 @@ def sample(epoch):
         save_image(sample.view(args.batch_size, 3, 32, 32),
                    '{}/sample_{}.png'.format(results_dir, epoch), normalize=True)
 
+
 if __name__ == '__main__':
 
     train_loader, valid_loader, test_loader = svhn_data_loader("svhn", args.batch_size)
