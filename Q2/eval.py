@@ -5,6 +5,7 @@ from scipy.stats import norm
 from torch.nn import functional as F
 import os
 
+from Q2.dataloader import binarized_mnist_data_loader
 from Q2.train import model, device, current_dir
 
 
@@ -51,19 +52,21 @@ with torch.no_grad():
     model.eval()
     log_px_arr = []
     elbo_arr = []
-    dir_name = '{}/split_mnist/batch_size_64/'.format(current_dir)
-    for file in sorted(os.listdir(os.fsencode(dir_name))):
-        filename = os.fsdecode(file)
-        print('Batch for', filename)
-        # load examples from the split binarized mnist to save time because it takes too long to load & split
-        X = torch.load('{}/{}'.format(dir_name, filename), map_location=device)
-        z_samples, qz = sample_z(model, X, num_samples=200)
-        ret = np.mean(eval_log_px(model, X, z_samples, qz))
-        print('log p(x): ', ret)
-        log_px_arr.append(ret)
-        elbo = -model.loss_function(X, *model(X)).item()
-        print('ELBO:', elbo)
-        elbo_arr.append(elbo)
-    print('===FINAL===')
-    print('log p(x)={}, ELBO={}'.format(np.mean(log_px_arr), np.mean(elbo_arr)))
+    _, valid_loader, test_loader = binarized_mnist_data_loader('{}/binarized_mnist'.format(current_dir), 64)
+
+    for loader in [('validation', valid_loader), ('test', test_loader)]:
+        print('Running on dataset:', loader[0])
+        for batch_idx, X in enumerate(loader[1]):
+            if batch_idx % 100 == 0:
+                print('Batch id', batch_idx)
+            # load examples from the split binarized mnist to save time because it takes too long to load & split
+            z_samples, qz = sample_z(model, X, num_samples=200)
+            ret = np.mean(eval_log_px(model, X, z_samples, qz))
+            print('log p(x): ', ret)
+            log_px_arr.append(ret)
+            elbo = -model.loss_function(X, *model(X)).item()
+            print('ELBO:', elbo)
+            elbo_arr.append(elbo)
+        print('===FINAL===', loader[0])
+        print('log p(x)={}, ELBO={}'.format(np.mean(log_px_arr), np.mean(elbo_arr)))
 
