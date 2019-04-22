@@ -73,6 +73,35 @@ def extract_features(classifier, data_loader):
                 yield h[i]
 
 
+def Denman_Beavers_sqrtm(A):
+    from scipy.linalg import inv
+
+    Y = A
+    Z = np.eye(len(A))
+
+    error = 1
+    error_tolerance = 1.5e-8
+
+    flag = 1
+    while(error > error_tolerance):
+        Y_old = Y
+        Y = (Y_old + inv(Z))/2
+        Z = (Z + inv(Y_old))/2
+        error_matrix = abs(Y - Y_old)
+        error = 0
+        # detect the maximum value in the error matrix
+        for i in range(len(A)):
+            temp_error = max(error_matrix[i])
+            if(temp_error > error):
+                error = temp_error
+
+
+        flag = flag + 1
+
+
+    print("Iteration Times: ", flag)
+    return Y
+
 def calculate_fid_score(sample_feature_iterator,
                         testset_feature_iterator):
 
@@ -89,16 +118,18 @@ def calculate_fid_score(sample_feature_iterator,
             break
         p.append(x)
 
-    q = np.array(q)
-    p = np.array(p)
+    q = np.array(q, dtype=np.float64)
+    p = np.array(p, dtype=np.float64)
 
     mu_p = np.mean(p, axis=0)
     mu_q = np.mean(q, axis=0)
     covar_p = np.cov(p, rowvar=False)
     covar_q = np.cov(q, rowvar=False)
-    sqrtm = linalg.sqrtm(covar_p.dot(covar_q))
-    # this trick from https://github.com/mseitzer/pytorch-fid/blob/master/fid_score.py
-    sqrtm = sqrtm.real if np.iscomplexobj(sqrtm) else sqrtm
+    A = covar_p.dot(covar_q)
+    # tip from TAs
+    #sqrtm = Denman_Beavers_sqrtm(A)
+    import mpmath
+    sqrtm = mpmath.sqrtm(A)
     d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(covar_p + covar_q - 2*sqrtm)
 
     return d2
