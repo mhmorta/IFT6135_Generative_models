@@ -47,35 +47,49 @@ class VAE(nn.Module):
             Flatten()
         )
 
-        self.encoder_mean = nn.Linear(in_features=2048, out_features = hidden_features)
+        self.encoder_mean = nn.Linear(in_features=2048, out_features=hidden_features)
 
         # apply softplus activation function to ensure that variance is positive
-        self.encoder_var = nn.Sequential(nn.Linear(in_features=2048, out_features = hidden_features), nn.Softplus())
+        self.encoder_var = nn.Sequential(nn.Linear(in_features=2048, out_features=hidden_features),
+                                         nn.Softplus())
 
         self.decoder = nn.Sequential(
-            nn.Linear(in_features=hidden_features, out_features=512),
-            nn.Tanh(),
-            UnFlatten(),
-            nn.Conv2d(512, 256, kernel_size=(5, 5), padding=(4, 4)),
-            nn.BatchNorm2d(256),
-            nn.Tanh(),
-            Interpolate(scale_factor=2),
-            nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
-            nn.BatchNorm2d(64),
-            nn.Tanh(),
-            Interpolate(scale_factor=2),
-            nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
-            nn.BatchNorm2d(32),
-            nn.Tanh(),
-            nn.Conv2d(32, 3, kernel_size=(3, 3), padding=(2, 2)),
-            nn.BatchNorm2d(3),
-            nn.Tanh(),
-            Flatten(),
-            nn.Linear(in_features=3072, out_features=3072),
-
-            # clip mean (-1, 1)
+            nn.Linear(in_features=hidden_features, out_features=128 * 4 * 4 * 4),
+            nn.ConvTranspose2d(128 * 4, 64 * 4, 2, stride=2),
+            nn.BatchNorm2d(64 * 4),
+            nn.ELU(),
+            nn.ConvTranspose2d(64 * 4, 32 * 4, 2, stride=2),
+            nn.BatchNorm2d(32 * 4),
+            nn.ELU(),
+            nn.ConvTranspose2d(32 * 4, 16 * 4, 2, stride=2),
+            nn.BatchNorm2d(16 * 4),
+            nn.ELU(),
+            nn.Conv2d(16 * 4, 3, 3, 1, 1),
             nn.Tanh()
         )
+
+            # nn.Tanh(),
+            # UnFlatten(),
+            # nn.Conv2d(512, 256, kernel_size=(5, 5), padding=(4, 4)),
+            # nn.BatchNorm2d(256),
+            # nn.Tanh(),
+            # Interpolate(scale_factor=2),
+            # nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
+            # nn.BatchNorm2d(64),
+            # nn.Tanh(),
+            # Interpolate(scale_factor=2),
+            # nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
+            # nn.BatchNorm2d(32),
+            # nn.Tanh(),
+            # nn.Conv2d(32, 3, kernel_size=(3, 3), padding=(2, 2)),
+            # nn.BatchNorm2d(3),
+            # nn.Tanh(),
+            # Flatten(),
+            # nn.Linear(in_features=3072, out_features=3072),
+            #
+            # # clip mean (-1, 1)
+            # nn.Tanh()
+
 
         self.flatten = Flatten()
 
@@ -94,9 +108,10 @@ class VAE(nn.Module):
         # reparametrize
         return mu + eps * std
 
-    def loss_function(self, x_decoded_mean, x, z, z_mean, z_var):
+    def loss_function(self, x_decoded_mean, x, z_mean, z_var):
 
         x_flatten = self.flatten(x)
+        x_decoded_mean = self.flatten(x_decoded_mean)
         logp_xz = -F.mse_loss(x_flatten, x_decoded_mean, reduction="sum")
 
         # KL divergence between prior of z (0, 1) and approximate posterior of z (z_mean, z_var)
@@ -112,7 +127,21 @@ class VAE(nn.Module):
         return -ELBO
 
     def decode(self, z):
-        return self.decoder(z)
+        #return self.decoder(z)
+        z = nn.Linear(in_features=100, out_features=128 * 4 * 4 * 4).forward(z)
+        z = z.view(-1, 128*4, 4, 4)
+        z = nn.ConvTranspose2d(128 * 4, 64 * 4, 2, stride=2).forward(z)
+        z = nn.BatchNorm2d(64 * 4).forward(z)
+        z = nn.ELU().forward(z)
+        z = nn.ConvTranspose2d(64 * 4, 32 * 4, 2, stride=2).forward(z)
+        z = nn.BatchNorm2d(32 * 4).forward(z)
+        z = nn.ELU().forward(z)
+        z = nn.ConvTranspose2d(32 * 4, 16 * 4, 2, stride=2).forward(z)
+        z = nn.BatchNorm2d(16 * 4).forward(z)
+        z = nn.ELU().forward(z)
+        z = nn.Conv2d(16 * 4, 3, 3, 1, 1).forward(z)
+        z = nn.Tanh().forward(z)
+        return z
 
     def forward(self, x):
         mean_z, var_z = self.encode(x)
