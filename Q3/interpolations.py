@@ -104,7 +104,7 @@ def VAE_disentangled_representation_experiment(device):
     dims = range(0,100)
     outputs = []
     z_y =  Variable(model.generate(noise)).to(device)
-    outputs.append(z_y)
+    # outputs.append(z_y)
     for d in dims:
         zh = make_interpolation(noise, dim=d).view(batch_size, latent_dim)
         output = Variable(model.generate(zh)).to(device)
@@ -121,11 +121,14 @@ def VAE_disentangled_representation_experiment(device):
     # difference = torch.cat((outputs, z_y), dim=0).view(batch_size, 3, 32, 32 )
     # difference = difference.view(batch_size, -1)
     difference = outputs - z_y
+    difference = torch.abs(difference).view(100,-1)
     topk = 6
-    sum_dif = torch.sum(torch.abs(difference), dim=1).detach().cpu().numpy()
-    top_sum_diff = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0][-topk:]
-    # top_sum_diff = np.append(top_sum_diff,101)
-    top_k_images = Variable(outputs[top_sum_diff]).to(device)
+    sum_dif = torch.sum(difference, dim=1).detach().cpu().numpy()
+    top_sum_diff_indcs = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0]
+    # top_sum_diff_indcs = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0][-topk:]
+    print(top_sum_diff_indcs)
+    # top_sum_diff_indcs = [top_sum_diff_indcs[x] for x in range(0, 100, 10)]
+    top_k_images = Variable(outputs[top_sum_diff_indcs]).to(device)
     top_k_images = top_k_images.view(topk, -1)
     z_y = z_y.view(1, -1)
     top_k_images = torch.cat((z_y, top_k_images))
@@ -167,11 +170,11 @@ def VAE_interpolating_experiment(device):
     path = 'vae/results/interpolated/VAE_interpolated_xs.png'
     save_images(x_list, path, nrow= len(x_list))
 
-    path = 'vae/results/interpolated/GAN_interpolated_xs_zs.png'
-    save_images(torch.cat((x_list, zh_y), dim=1), path, nrow=10)
+    path = 'vae/results/interpolated/VAE_interpolated_xs_zs.png'
+    save_images(torch.cat((x_list, zh_y), dim=0), path, nrow=10)
 
 if __name__ == "__main__":
-    torch.manual_seed(50)
+    torch.manual_seed(511)
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
