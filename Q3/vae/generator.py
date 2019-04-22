@@ -15,7 +15,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--saved-model', type=str, default="params_epoch_26_loss_86.1742.pt", metavar='N',
+parser.add_argument('--saved-model', type=str, default="params_epoch_29_loss_81.2645.pt", metavar='N',
                     help='saved VAE model to generate samples')
 
 args = parser.parse_args()
