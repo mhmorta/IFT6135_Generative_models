@@ -50,7 +50,7 @@ def train(epoch):
         x = x.to(device)
         optimizer.zero_grad()
         z, x_decoded_mean, mu, var = model(x)
-        loss = model.loss_function(x_decoded_mean, x, z, mu, var)
+        loss = model.loss_function(x_decoded_mean, x, mu, var)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
@@ -73,7 +73,7 @@ def validate(epoch):
         for i, (x, y) in enumerate(valid_loader):
             x = x.to(device)
             z, x_decoded_mean, mu, var = model(x)
-            valid_loss += model.loss_function(x_decoded_mean, x, z, mu, var).item()
+            valid_loss += model.loss_function(x_decoded_mean, x, mu, var).item()
             if i == 0:
                 n = min(x.size(0), 8)
                 comparison = torch.cat([x[:n], model.generate(z)[:n]])
@@ -92,7 +92,7 @@ def test():
         for i, (x, y) in enumerate(test_loader):
             x = x.to(device)
             z, x_decoded_mean, mu, var = model(x)
-            test_loss += model.loss_function(x_decoded_mean, x, z, mu, var).item()
+            test_loss += model.loss_function(x_decoded_mean, x, mu, var).item()
 
     test_loss /= (i + 1)
     print('====> Average Test loss: {:.4f}'.format(test_loss))
