@@ -39,8 +39,8 @@ else:
 optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
 
 def GAN(D_x, D_y):
-	D_loss_real = torch.mean(torch.log(D_x))
-	D_loss_fake = torch.mean(torch.log(1 - D_y))
+	D_loss_real = torch.mean(torch.log(1 - D_x))
+	D_loss_fake = torch.mean(torch.log(D_y))
 	D_loss = D_loss_real + D_loss_fake
 	return - D_loss
 
@@ -149,7 +149,7 @@ def gan_eval():
 
 
   # Plot the discriminator output.
-  r = D_x.detach().numpy() 
+  r = -D_x.detach().numpy()
   plt.figure(figsize=(8,4))
   plt.subplot(1,2,1)
   plt.plot(xx,r)

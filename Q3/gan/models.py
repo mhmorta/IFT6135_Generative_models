@@ -26,109 +26,6 @@ class Interpolate(nn.Module):
         return x
 
 
-# class Generator(nn.Module):
-#     def __init__(self, channels, latent_dim, cuda):
-#         super(Generator, self).__init__()
-#         self.cuda = cuda
-
-#         self.decoder = nn.Sequential(
-#             nn.Linear(in_features=latent_dim, out_features=512),
-#             nn.Tanh(),
-#             UnFlatten(),
-#             nn.Conv2d(512, 256, kernel_size=(5, 5), padding=(4, 4)),
-#             nn.BatchNorm2d(256),
-#             nn.Dropout2d(0.25),
-#             nn.Tanh(),
-#             Interpolate(scale_factor=2),
-#             nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
-#             nn.BatchNorm2d(64),
-#             nn.Dropout2d(0.25),
-#             nn.Tanh(),
-#             Interpolate(scale_factor=2),
-#             nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
-#             nn.BatchNorm2d(32),
-#             nn.Dropout2d(0.25),
-#             nn.Tanh(),
-#             nn.Conv2d(32, 3, kernel_size=(3, 3), padding=(2, 2)),
-#             nn.BatchNorm2d(3),
-#             nn.Dropout2d(0.5),
-#             nn.Tanh(),
-#             Flatten(),
-#             nn.Linear(in_features=3072, out_features=3072),
-
-#             # clip mean (-1, 1)
-#             nn.Tanh()
-#         )
-
-#         self.flatten = Flatten()
-
-#     def forward(self, input):
-#         x = self.decoder(input)
-#         return x.view(x.size(0), 3, 32, 32)
-
-class Generator(nn.Module):
-    def __init__(self, channels, latent_dim, cuda):
-       super(Generator,self).__init__()
-       self.cuda = cuda
-       #self.init_size = 8
-       self.linear = nn.Linear(latent_dim,128*8**2)
-       self.conv = nn.Sequential(
-           nn.BatchNorm2d(128),
-           nn.Upsample(scale_factor=2),
-           nn.Conv2d(128,128,3, stride =1,padding =1),
-           nn.BatchNorm2d(128,0.8),
-           nn.LeakyReLU(0.2,inplace=True),
-           nn.Upsample(scale_factor=2),
-           nn.Conv2d(128,64,3, stride =1,padding =1),
-           nn.BatchNorm2d(64,0.8),
-           nn.LeakyReLU(0.2,inplace=True),
-           #nn.Upsample(scale_factor=2),
-           nn.Conv2d(64,3,3, stride =1,padding =1),
-           nn.Tanh(),
-       )
-    def forward(self,z):
-       out = self.linear(z)
-       out = out.view(out.shape[0],128,8,8)
-       return self.conv(out)
-
-
-# class Generator(nn.Module):
-#     def __init__(self, channels, latent_dim, cuda):
-#         super(Generator, self).__init__()
-#         self.cuda = cuda
-#
-#         self.decoder = nn.Sequential(
-#             nn.Linear(in_features=latent_dim, out_features=512),
-#             nn.Tanh(),
-#             UnFlatten(),
-#             nn.Conv2d(512, 256, kernel_size=(5, 5), padding=(4, 4)),
-#             nn.BatchNorm2d(256),
-#             nn.Tanh(),
-#             Interpolate(scale_factor=2),
-#             nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
-#             nn.BatchNorm2d(64),
-#             nn.Tanh(),
-#             Interpolate(scale_factor=2),
-#             nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
-#             nn.BatchNorm2d(32),
-#             nn.Tanh(),
-#             nn.Conv2d(32, 3, kernel_size=(3, 3), padding=(2, 2)),
-#             nn.BatchNorm2d(3),
-#             nn.Tanh(),
-#             Flatten(),
-#             nn.Linear(in_features=3072, out_features=3072),
-#
-#             # clip mean (-1, 1)
-#             nn.Tanh()
-#         )
-#
-#         self.flatten = Flatten()
-#
-#     def forward(self, input):
-#         x = self.decoder(input)
-#         return x
-
-
 class Generator(nn.Module):
     def __init__(self, channels, latent_dim, cuda):
         super(Generator, self).__init__()
@@ -136,24 +33,24 @@ class Generator(nn.Module):
 
         self.mlp = nn.Sequential(
             nn.Linear(latent_dim, 128 * 4 * 4),
-            nn.ReLU()
+#             nn.ReLU()
             )
 
         self.convTranspose = nn.Sequential(
             nn.ConvTranspose2d(128, 64, 4, 2, 1),
             nn.BatchNorm2d(64),
-            nn.Dropout2d(0.25),
-            nn.ReLU(),
+#             nn.Dropout2d(0.25),
+            nn.ELU(),
 
             nn.ConvTranspose2d(64, 32, 3, 1, 1),
             nn.BatchNorm2d(32),
-            nn.Dropout2d(0.25),
-            nn.ReLU(),
+#             nn.Dropout2d(0.25),
+            nn.ELU(),
 
             nn.ConvTranspose2d(32, 16, 4, 2, 1),
             nn.BatchNorm2d(16),
-            nn.Dropout2d(0.25),
-            nn.ReLU(),
+#             nn.Dropout2d(0.25),
+            nn.ELU(),
 
             nn.ConvTranspose2d(16, 16, 3, 1, 1),
             nn.BatchNorm2d(16),
@@ -162,10 +59,10 @@ class Generator(nn.Module):
 
             nn.ConvTranspose2d(16, 8, 4, 2, 1),
             nn.BatchNorm2d(8),
-            nn.Dropout2d(0.5),
-            nn.ReLU(),
+#             nn.Dropout2d(0.5),
+            nn.ELU(),
 
-            nn.ConvTranspose2d(8, channels, 3, 1, 1),
+            nn.Conv2d(8, channels, 3, 1, 1),
             nn.Tanh()
             )
         self.init_weights()
@@ -186,45 +83,51 @@ class Generator(nn.Module):
         return self.convTranspose(x)
 
 
+
+
 class Discriminator(nn.Module):
     def __init__(self, channels, latent_dim, cuda):
         super(Discriminator, self).__init__()
         self.cuda = cuda
 
         self.conv = nn.Sequential( 
-            nn.Conv2d(channels, 8, 3, 1, 1),
-            nn.BatchNorm2d(8),
-            nn.Dropout2d(0.25),
-            nn.LeakyReLU(0.2),
-
-            nn.Conv2d(8, 16, 3, 2, 1),
-            nn.BatchNorm2d(16),
-            nn.Dropout2d(0.25),
-            nn.LeakyReLU(0.2),
-
-            # nn.Conv2d(16, 16, 3, 1, 1),
-            # nn.BatchNorm2d(16),
-            # nn.Dropout2d(0.5),
-            # nn.LeakyReLU(0.2),
-
-            nn.Conv2d(16, 32, 3, 2, 1),
+            nn.Conv2d(channels, 32, 3, 2, 1),
             nn.BatchNorm2d(32),
-            nn.Dropout2d(0.25),
-            nn.LeakyReLU(0.2),
+#             nn.Dropout2d(0.25),
+            nn.ReLU(),
 
-            nn.Conv2d(32, 64, 3, 1, 1),
+            nn.Conv2d(32, 64, 3, 2, 1),
             nn.BatchNorm2d(64),
-            nn.Dropout2d(0.25),
-            nn.LeakyReLU(0.2),
+#             nn.Dropout2d(0.25),
+            nn.ReLU(),
+
+            nn.Conv2d(64, 64, 3, 1, 1),
+            nn.BatchNorm2d(64),
+#             nn.Dropout2d(0.5),
+            nn.ReLU(),
 
             nn.Conv2d(64, 128, 3, 2, 1),
             nn.BatchNorm2d(128),
-            nn.Dropout2d(0.5),
-            nn.LeakyReLU(0.2),            
+#             nn.Dropout2d(0.25),
+            nn.ReLU(),
+
+            # nn.Conv2d(32, 64, 3, 2, 1),
+            # nn.BatchNorm2d(64),
+            # nn.Dropout2d(0.25),
+            # nn.LeakyReLU(0.2),
+
+            # nn.Conv2d(64, 128, 3, 2, 1),
+            # nn.BatchNorm2d(128),
+            # nn.Dropout2d(0.5),
+            # nn.LeakyReLU(0.2),            
             )
         self.mlp = nn.Sequential(
-            nn.Linear(128 * 4 * 4, 1),
-            nn.Sigmoid()
+            nn.Linear(128 * 4 * 4, 256),
+            nn.ReLU(),
+            nn.Linear(256, 512),
+            nn.ReLU(),
+            nn.Linear(512,1)
+#             nn.Sigmoid()
             )
 
         self.init_weights()
@@ -242,3 +145,4 @@ class Discriminator(nn.Module):
         x = self.conv(input)
         x = x.view(-1, 128 * 4 * 4)
         return self.mlp(x)
+
