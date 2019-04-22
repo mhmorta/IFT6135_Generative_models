@@ -14,15 +14,13 @@ import os
 gan_path = './gan/results/models/best/gan_svhn_model.pt'
 vae_path = './vae/saved_model/params_epoch_24_loss_86.3193.pt'
 
-def make_interpolation(z, dim, eps=1):
+def make_interpolation(z, dim, eps=2):
     zh= z[0].clone().detach()
     zh[dim]= zh[dim]+ eps
     return zh
 
-
 def save_images(Data, path, nrow=1):
     save_image(Data.data.view(-1,  3, 32, 32).cpu(), path, nrow, normalize=True)
-
 
 def GAN_disentangled_representation_experiment(device):
     batch_size = 1
@@ -118,7 +116,8 @@ def VAE_disentangled_representation_experiment(device):
 
     outputs = torch.cat(outputs, dim=0)
 
-    difference = torch.abs(outputs - z_y).view(100,-1)
+    difference = outputs - z_y
+    difference = torch.abs(difference).view(100,-1)
     sum_dif = torch.sum(difference, dim=1).detach().cpu().numpy()
     top_sum_diff_indcs = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0]
     top_sum_diff_indcs = [top_sum_diff_indcs[x] for x in range(9, 100, 10)]
@@ -129,6 +128,9 @@ def VAE_disentangled_representation_experiment(device):
 
     path = 'vae/results/interpolated/VAE_top_disentangleds.png'
     save_images(top_k_images, path, nrow=len(top_k_images))
+    difference = top_k_images - zh_y
+    top_k_images = torch.cat((top_k_images,  difference), dim=0)
+    save_images(top_k_images, path, nrow=11)
 
 def VAE_interpolating_experiment(device):
     batch_size = 2
