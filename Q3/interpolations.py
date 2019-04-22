@@ -125,11 +125,12 @@ def VAE_disentangled_representation_experiment(device):
     topk = 6
     sum_dif = torch.sum(difference, dim=1).detach().cpu().numpy()
     top_sum_diff_indcs = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0]
-    # top_sum_diff_indcs = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0][-topk:]
+    # top_sum_diff_indcs = [top_sum_diff_indcs[-topk:]]
+    top_sum_diff_indcs = [top_sum_diff_indcs[x] for x in range(9, 100, 10)]
     print(top_sum_diff_indcs)
-    # top_sum_diff_indcs = [top_sum_diff_indcs[x] for x in range(0, 100, 10)]
+    
     top_k_images = Variable(outputs[top_sum_diff_indcs]).to(device)
-    top_k_images = top_k_images.view(topk, -1)
+    top_k_images = top_k_images.view(len(top_k_images), -1)
     z_y = z_y.view(1, -1)
     top_k_images = torch.cat((z_y, top_k_images))
 
