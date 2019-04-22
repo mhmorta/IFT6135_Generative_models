@@ -18,7 +18,6 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
 parser.add_argument('--saved-model', type=str, default="gan_svhn_model.pt", metavar='N',
                     help='saved VAE model to generate samples')
 
-print(torch.__version__)
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
