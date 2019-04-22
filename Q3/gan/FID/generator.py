@@ -11,6 +11,8 @@ from Q3.gan.FID.models_org import sample_generator
 parser = argparse.ArgumentParser(description='VAE SVHN Image generator')
 parser.add_argument('--num-samples', type=int, default=1000, metavar='N',
                     help='number of samples to generate (default: 128)')
+parser.add_argument('--sample-merged', type=bool, default=False, metavar='N',
+                    help='Whether we want one big sample')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -38,11 +40,15 @@ model.load_state_dict(torch.load(saved_model, map_location=device), strict=False
 model.eval()
 
 with torch.no_grad():
-    num_samples = 1000
-    sample = sample_generator(model, num_samples, 100, device).cpu()
-    for idx, img in enumerate(sample.view(num_samples, 3, 32, 32)):
-        file_name = '{}/sample_{}.png'.format(samples_dir, idx)
-        print(idx, 'saving to', file_name)
-        save_image(img, file_name, normalize=True)
+    sample = sample_generator(model, args.num_samples, 100, device).cpu()
+    images = sample.view(args.num_samples, 3, 32, 32)
+    if args.sample_merged:
+        save_image(images, '{}/sample_merged.png'
+                   .format('{}/sample_merged/'.format(current_dir)), nrow=10, normalize=True)
+    else:
+        for idx, img in enumerate(images):
+            file_name = '{}/sample_{}.png'.format(samples_dir, idx)
+            print(idx, 'saving to', file_name)
+            save_image(img, file_name, normalize=True)
 
 
