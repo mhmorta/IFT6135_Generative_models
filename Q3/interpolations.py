@@ -18,7 +18,7 @@ def make_interpolation(z, dim, eps=1):
 
 
 def save_images(Data, path, nrow=1):
-    save_image(Data.data.view(-1, 3, 32, 32).cpu(), path, nrow, normalize=True)
+    save_image(Data.data.view(-1,  3, 32, 32).cpu(), path, nrow, normalize=True)
 
 
 def GAN_disentangled_representation_experiment(device):
@@ -128,11 +128,11 @@ def VAE_disentangled_representation_experiment(device):
     top_k_images = Variable(outputs[top_sum_diff]).to(device)
     top_k_images = top_k_images.view(topk, -1)
     z_y = z_y.view(1, -1)
-    top_k_images = torch.cat((top_k_images, z_y))
+    top_k_images = torch.cat((z_y, top_k_images))
 
     # torch.append(top_k_images, z_y)
     path = 'vae/results/interpolated/vae_top_disentangleds.png'
-    save_images(top_k_images, path, nrow=1)
+    save_images(top_k_images, path, nrow=len(top_k_images))
 
 def VAE_interpolating_experiment(device):
     batch_size = 2
@@ -162,13 +162,13 @@ def VAE_interpolating_experiment(device):
     zh_y = Variable(model.generate(z_list)).to(device)
 
     path = 'vae/results/interpolated/VAE_interpolated_zs.png'
-    save_images(zh_y, path)
+    save_images(zh_y, path, nrow=len(zh_y))
 
     path = 'vae/results/interpolated/VAE_interpolated_xs.png'
-    save_images(x_list, path)
+    save_images(x_list, path, nrow= len(x_list))
 
     path = 'vae/results/interpolated/GAN_interpolated_xs_zs.png'
-    save_images(torch.cat((x_list, zh_y), dim=1), path, nrow=2)
+    save_images(torch.cat((x_list, zh_y), dim=1), path, nrow=10)
 
 if __name__ == "__main__":
     torch.manual_seed(50)
