@@ -115,26 +115,15 @@ def VAE_disentangled_representation_experiment(device):
     path = 'vae/results/interpolated/vae_disentangled_zs.png'
     save_images(outputs, path)
 
-    # path = 'vae/results/interpolated/vae_disentangled_zs_difference.png'
-    # save_images(outputs - z_y, path)
-
-    # difference = torch.cat((outputs, z_y), dim=0).view(batch_size, 3, 32, 32 )
-    # difference = difference.view(batch_size, -1)
-    difference = outputs - z_y
-    difference = torch.abs(difference).view(100,-1)
-    topk = 6
+    difference = torch.abs(outputs - z_y).view(100,-1)
     sum_dif = torch.sum(difference, dim=1).detach().cpu().numpy()
     top_sum_diff_indcs = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0]
-    # top_sum_diff_indcs = [top_sum_diff_indcs[-topk:]]
     top_sum_diff_indcs = [top_sum_diff_indcs[x] for x in range(9, 100, 10)]
     print(top_sum_diff_indcs)
     
-    top_k_images = Variable(outputs[top_sum_diff_indcs]).to(device)
-    top_k_images = top_k_images.view(len(top_k_images), -1)
-    z_y = z_y.view(1, -1)
-    top_k_images = torch.cat((z_y, top_k_images))
+    top_k_images = Variable(outputs[top_sum_diff_indcs]).to(device).view(len(top_sum_diff_indcs), -1)
+    top_k_images = torch.cat((z_y.view(1, -1), top_k_images))
 
-    # torch.append(top_k_images, z_y)
     path = 'vae/results/interpolated/vae_top_disentangleds.png'
     save_images(top_k_images, path, nrow=len(top_k_images))
 
