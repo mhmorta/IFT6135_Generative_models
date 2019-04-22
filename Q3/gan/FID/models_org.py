@@ -198,13 +198,13 @@ class Discriminator(nn.Module):
         x = x.view(-1, 256 * 4 * 4)
         return self.mlp(x)
 
-def sample_generator(Generator, num_samples, latent_dim, count, device):
+def sample_generator(Generator, num_samples, latent_dim, device):
     noise = Variable(torch.randn(num_samples, latent_dim), requires_grad=False).to(device)
     noise.require_grad = False
 
     gen_samples = Generator(noise)
     gen_samples = gen_samples.view(-1, 3, 32, 32)
-    save_image(gen_samples.data.view(num_samples, 3, 32, 32).cpu(), 'results/gen_img_' + str(count) + '.png', nrow = 10, normalize=True)
+    return gen_samples
 
 def loss_WD(D_x, D_y, regularizer):
     lam = 25
