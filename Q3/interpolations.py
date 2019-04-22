@@ -31,8 +31,9 @@ def GAN_disentangled_representation_experiment(device):
     saved_model = './gan/results/models/gan_svhn_model.pt'
     G.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
 
-    dims = [0,20]
+    dims = range(0,100)
     outputs = []
+    z_y = G(noise).view(1, -1)
     for d in dims:
         zh = make_interpolation(noise, dim=d)
         output = Variable(G(zh)).to(device)
@@ -43,9 +44,17 @@ def GAN_disentangled_representation_experiment(device):
     path = 'gan/results/interpolated/GAN_disentangled_zs.png'
     save_images(outputs, path)
 
-    z_y = G(noise).view(1, -1)
-    path = 'gan/results/interpolated/GAN_disentangled_zs_difference.png'
-    save_images(outputs - z_y, path)
+    difference = torch.abs(outputs - z_y).view(100,-1)
+    sum_dif = torch.sum(difference, dim=1).detach().cpu().numpy()
+    top_sum_diff_indcs = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0]
+    top_sum_diff_indcs = [top_sum_diff_indcs[x] for x in range(9, 100, 10)]
+    print(top_sum_diff_indcs)
+    
+    top_k_images = Variable(outputs[top_sum_diff_indcs]).to(device).view(len(top_sum_diff_indcs), -1)
+    top_k_images = torch.cat((z_y.view(1, -1), top_k_images))
+
+    path = 'vae/results/interpolated/gan_top_disentangleds.png'
+    save_images(top_k_images, path, nrow=len(top_k_images))
 
 
 
@@ -59,8 +68,9 @@ def  GAN_interpolating_experiment(device):
     saved_model = './gan/results/models/gan_svhn_model.pt'
     G.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
 
-    x_0 = Variable(G(z[0])).to(device)
-    x_1 = Variable(G(z[1])).to(device)
+    x = Variable(model.generate(z)).to(device)
+    x_0 = x[0]
+    x_1 = x[1]
 
     a_list = np.arange(0, 1, 0.1)
     z_list = []
@@ -80,12 +90,9 @@ def  GAN_interpolating_experiment(device):
     path = 'gan/results/interpolated/GAN_interpolated_xs.png'
     save_images(x_list, path)
 
-    difference  = torch.cat((x_list, zh_y), dim=0)
-    difference = difference.view(batch_size, -1)
-    sum_dif = torch.sum(torch.abs(difference), dim=1)
+    path = 'vae/results/interpolated/GAN_interpolated_xs_zs.png'
+    save_images(torch.cat((x_list, zh_y), dim=0), path, nrow=10)
 
-    path = 'gan/results/interpolated/GAN_interpolated_xs_zs.png'
-    save_images(difference, path, nrow=2)
 
 
 def VAE_disentangled_representation_experiment(device):
@@ -93,18 +100,14 @@ def VAE_disentangled_representation_experiment(device):
     latent_dim=100
     noise = Variable(torch.randn(batch_size, latent_dim)).to(device)
 
-    # G = Generator(channels=3, latent_dim=latent_dim, cuda=device).to(device)
     model = VAE(100).to(device)
 
     saved_model = './vae/saved_model/params_epoch_24_loss_86.3193.pt'
     model.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
 
-    # dims = [0,20,40,60,80]
-    # dims = [0, 1, 2, 3]
     dims = range(0,100)
     outputs = []
     z_y =  Variable(model.generate(noise)).to(device)
-    # outputs.append(z_y)
     for d in dims:
         zh = make_interpolation(noise, dim=d).view(batch_size, latent_dim)
         output = Variable(model.generate(zh)).to(device)
@@ -137,7 +140,6 @@ def VAE_interpolating_experiment(device):
     saved_model = './vae/saved_model/params_epoch_24_loss_86.3193.pt'
     model.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
 
-
     x = Variable(model.generate(z)).to(device)
     x_0 = x[0]
     x_1 = x[1]
@@ -164,7 +166,7 @@ def VAE_interpolating_experiment(device):
     save_images(torch.cat((x_list, zh_y), dim=0), path, nrow=10)
 
 if __name__ == "__main__":
-    torch.manual_seed(511)
+    # torch.manual_seed(511)
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
