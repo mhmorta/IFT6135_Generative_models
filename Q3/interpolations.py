@@ -11,14 +11,14 @@ import argparse
 import os
 
 
-def make_interpolation(z, dim, eps=100):
+def make_interpolation(z, dim, eps=1):
     zh= z[0].clone().detach()
     zh[dim]= zh[dim]+ eps
     return zh
 
 
 def save_images(Data, path, nrow=1):
-    save_image(Data.data.view(-1, 3, 32, 32).cpu(), path, nrow, normalize=True)
+    save_image(Data.data.view(-1,  3, 32, 32).cpu(), path, nrow, normalize=True)
 
 
 def GAN_disentangled_representation_experiment(device):
@@ -35,7 +35,7 @@ def GAN_disentangled_representation_experiment(device):
     outputs = []
     for d in dims:
         zh = make_interpolation(noise, dim=d)
-        output = Variable(G(noise)).to(device)
+        output = Variable(G(zh)).to(device)
         outputs.append(output)
 
     outputs = torch.cat(outputs, dim=0).view(len(dims),-1)
@@ -43,9 +43,13 @@ def GAN_disentangled_representation_experiment(device):
     path = 'gan/results/interpolated/GAN_disentangled_zs.png'
     save_images(outputs, path)
 
+    z_y = G(noise).view(1, -1)
+    path = 'gan/results/interpolated/GAN_disentangled_zs_difference.png'
+    save_images(outputs - z_y, path)
 
 
-def GAN_interpolating_experiment(device):
+
+def  GAN_interpolating_experiment(device):
     batch_size = 2
     latent_dim = 100
     z = Variable(torch.randn(batch_size, latent_dim)).to(device)
@@ -76,10 +80,12 @@ def GAN_interpolating_experiment(device):
     path = 'gan/results/interpolated/GAN_interpolated_xs.png'
     save_images(x_list, path)
 
+    difference  = torch.cat((x_list, zh_y), dim=0)
+    difference = difference.view(batch_size, -1)
+    sum_dif = torch.sum(torch.abs(difference), dim=1)
+
     path = 'gan/results/interpolated/GAN_interpolated_xs_zs.png'
-    save_images(torch.cat((x_list, zh_y), dim=0), path, nrow=2)
-
-
+    save_images(difference, path, nrow=2)
 
 
 def VAE_disentangled_representation_experiment(device):
@@ -97,15 +103,29 @@ def VAE_disentangled_representation_experiment(device):
     # dims = [0, 1, 2, 3]
     dims = range(0,100)
     outputs = []
+    z_y =  Variable(model.generate(noise)).to(device)
+    # outputs.append(z_y)
     for d in dims:
-        zh = make_interpolation(noise, dim=d)
-        output = Variable(model.generate(noise)).to(device)
+        zh = make_interpolation(noise, dim=d).view(batch_size, latent_dim)
+        output = Variable(model.generate(zh)).to(device)
         outputs.append(output)
 
-    outputs = torch.cat(outputs, dim=0).view(len(dims),-1)
+    outputs = torch.cat(outputs, dim=0)
 
     path = 'vae/results/interpolated/vae_disentangled_zs.png'
     save_images(outputs, path)
+
+    difference = torch.abs(outputs - z_y).view(100,-1)
+    sum_dif = torch.sum(difference, dim=1).detach().cpu().numpy()
+    top_sum_diff_indcs = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0]
+    top_sum_diff_indcs = [top_sum_diff_indcs[x] for x in range(9, 100, 10)]
+    print(top_sum_diff_indcs)
+    
+    top_k_images = Variable(outputs[top_sum_diff_indcs]).to(device).view(len(top_sum_diff_indcs), -1)
+    top_k_images = torch.cat((z_y.view(1, -1), top_k_images))
+
+    path = 'vae/results/interpolated/vae_top_disentangleds.png'
+    save_images(top_k_images, path, nrow=len(top_k_images))
 
 def VAE_interpolating_experiment(device):
     batch_size = 2
@@ -135,16 +155,16 @@ def VAE_interpolating_experiment(device):
     zh_y = Variable(model.generate(z_list)).to(device)
 
     path = 'vae/results/interpolated/VAE_interpolated_zs.png'
-    save_images(zh_y, path)
+    save_images(zh_y, path, nrow=len(zh_y))
 
     path = 'vae/results/interpolated/VAE_interpolated_xs.png'
-    save_images(x_list, path)
+    save_images(x_list, path, nrow= len(x_list))
 
-    path = 'vae/results/interpolated/GAN_interpolated_xs_zs.png'
-    save_images(torch.cat((x_list, zh_y), dim=1), path, nrow=2)
+    path = 'vae/results/interpolated/VAE_interpolated_xs_zs.png'
+    save_images(torch.cat((x_list, zh_y), dim=0), path, nrow=10)
 
 if __name__ == "__main__":
-    torch.manual_seed(50)
+    torch.manual_seed(511)
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
