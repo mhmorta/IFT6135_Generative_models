@@ -17,26 +17,26 @@ f_1 = next(samplers.distribution4(1))
 X_dim = 1
 h_dim = 64
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.D = torch.nn.Sequential(
-			    torch.nn.Linear(X_dim, h_dim),
-			    torch.nn.ReLU(),
-			    torch.nn.Linear(h_dim, h_dim),
-			    torch.nn.ReLU(),
-			    torch.nn.Linear(h_dim, 1),
-			    torch.nn.Sigmoid()
-			)
-    def forward(self, x):
-        return self.D(x)
+# class Net(nn.Module):
+#     def __init__(self, input_dim=1, hidden_size=32, n_hidden=3):
+#         super(Net, self).__init__()
+#         self.D = torch.nn.Sequential(
+# 			    torch.nn.Linear(X_dim, h_dim),
+# 			    torch.nn.ReLU(),
+# 			    torch.nn.Linear(h_dim, h_dim),
+# 			    torch.nn.ReLU(),
+# 			    torch.nn.Linear(h_dim, 1),
+# 			    torch.nn.Sigmoid()
+# 			)
+#     def forward(self, x):
+#         return self.D(x)
 
-if cuda:
-	Discriminator = Net().cuda()
-else:
-	Discriminator = Net()
+# if cuda:
+# 	Discriminator = Net().cuda()
+# else:
+# 	Discriminator = Net()
 
-optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
+# optimizer = optim.SGD(Discriminator.parameters(), lr = 1e-3, momentum = 0.9)
 
 def GAN(D_x, D_y):
 	D_loss_real = torch.mean(torch.log(1 - D_x))
@@ -87,8 +87,6 @@ def train(model, p, q, loss_func, batch_size=512, epochs=1000):
     optimizer.zero_grad()
 
     px = next(dist_p)
-
-    # q data.
     qx = next(dist_q)
 
     p_tensor = Variable( torch.from_numpy(np.float32(px.reshape(batch_size, model.input_dim))))
@@ -102,10 +100,8 @@ def train(model, p, q, loss_func, batch_size=512, epochs=1000):
     loss.backward()
     optimizer.step()
 
-
     if e % 100 == 0:
         print("\tEpoch ", e, "Loss = ", loss.data.numpy())
-
 
 def test_net(model, loss_fn, p, q, batch_size):
   px = next(iter(p))
@@ -114,13 +110,12 @@ def test_net(model, loss_fn, p, q, batch_size):
   q_tensor = Variable( torch.from_numpy(np.float32(qx.reshape(batch_size, model.input_dim))) )
 
   return loss_fn(model, p_tensor, q_tensor, lambda_fact=0)
-  
-		
+  		
 def gan_eval():
   epochs = 1000
   batch_size=1000
-  hidden_size = 50
-  n_hidden = 3
+  hidden_size = 25
+  n_hidden = 2
   input_dim = 1
 
   f0 = samplers.distribution3(batch_size)
@@ -139,7 +134,6 @@ def gan_eval():
   plt.savefig('histogram')
   plt.close()
   
-
   
   xx = np.linspace(-5,5,1000)
   N = lambda x: np.exp(-x**2/2.)/((2*np.pi)**0.5)
