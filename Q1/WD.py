@@ -11,7 +11,7 @@ import samplers as samplers
 cuda = torch.cuda.is_available();
 
 class Net(nn.Module):
-    def __init__(self, X_dim=2, h_dim= 32):
+    def __init__(self, X_dim=2, h_dim= 64):
         super(Net, self).__init__()
         self.X_dim = X_dim
         self.h_dim = h_dim
@@ -82,7 +82,7 @@ def train_WD():
 		print('theta:', thetas[i])
 		
 		#  training stage
-		for e in range(5000):
+		for e in range(1000):
 			Discriminator.train()
 			X = torch.from_numpy(next(dist_p)).float()
 			Y = torch.from_numpy(next(dist_q)).float()
@@ -94,7 +94,7 @@ def train_WD():
 			optimizer.zero_grad()
 
 			loss = loss_WD(Discriminator, X,Y)
-			if ( e%1000 == True):
+			if ( e%100 == True):
 				print(-loss.data)
 
 			loss.backward()
@@ -121,6 +121,8 @@ def train_WD():
 	plt.figure()
 	plt.scatter(thetas,losses)
 	plt.title('Wasserstein GAN')
+	plt.xlabel('Theta')
+	plt.ylabel('Distance')
 	plt.savefig('Wasserstein_D.png')
 	plt.close()
 

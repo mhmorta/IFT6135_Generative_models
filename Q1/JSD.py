@@ -13,7 +13,7 @@ import samplers as samplers
 cuda = torch.cuda.is_available();
 
 X_dim = 2
-h_dim = 256
+h_dim = 64
 
 class Net(nn.Module):
     def __init__(self):
@@ -45,6 +45,7 @@ def JSD(D_x, D_y):
 ## Training 
 ## ----------------
 
+
 def train_JSD():
 	losses = []
 	thetas = np.array(range(-10, 11))/10
@@ -71,7 +72,7 @@ def train_JSD():
 			Y = Y.cuda()
 		
 		#  training stage
-		for e in range(5000):
+		for e in range(1000):
 			O_real = Discriminator(X)
 			O_fake = Discriminator(Y)
 
@@ -79,7 +80,8 @@ def train_JSD():
 
 			loss = JSD(O_real, O_fake)
 
-			if ( e%1000 == True):
+			if ( e%100 == True):
+
 				print(-loss.data)
 
 			loss.backward()
@@ -99,6 +101,8 @@ def train_JSD():
 	plt.figure()
 	plt.scatter(thetas,losses)
 	plt.title('Jenssen Shanon Divergence')
+	plt.xlabel('Theta')
+	plt.ylabel('Divergance')
 	plt.savefig('Jenssen_Shanon_Divergence.png') 
 	plt.close()
 
