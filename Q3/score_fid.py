@@ -97,7 +97,7 @@ def calculate_fid_score(sample_feature_iterator,
     covar_p = np.cov(p, rowvar=False)
     covar_q = np.cov(q, rowvar=False)
     A = covar_p.dot(covar_q)
-    # tip from TAs
+    print('calculating sqrtm of A')
     B = mpmath.sqrtm(A)
     d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(covar_p + covar_q - 2*B)
 
