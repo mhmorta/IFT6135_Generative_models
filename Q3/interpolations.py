@@ -43,9 +43,6 @@ def GAN_disentangled_representation_experiment(device):
 
     outputs = torch.cat(outputs, dim=0).view(len(dims),-1)
 
-    # path = 'gan/results/interpolated/GAN_disentangled_zs.png'
-    # save_images(outputs, path)
-
     difference = torch.abs(outputs - z_y).view(100,-1)
     sum_dif = torch.sum(difference, dim=1).detach().cpu().numpy()
     top_sum_diff_indcs = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0]
@@ -96,7 +93,10 @@ def  GAN_interpolating_experiment(device):
     save_images(x_list, path, nrow=len(x_list))
 
     path = 'gan/results/interpolated/GAN_interpolated_xs_zs.png'
-    save_images(torch.cat((x_list, zh_y), dim=0), path, nrow=11)
+    results = torch.cat((x_list, zh_y), dim=0)
+    difference = x_list - zh_y
+    results = torch.cat((results,  difference), dim=0)
+    save_images(results, path, nrow=11)
 
 
 def VAE_disentangled_representation_experiment(device):
@@ -163,6 +163,10 @@ def VAE_interpolating_experiment(device):
 
     path = 'vae/results/interpolated/VAE_interpolated_xs_zs.png'
     save_images(torch.cat((x_list, zh_y), dim=0), path, nrow=11)
+    results = torch.cat((x_list, zh_y), dim=0)
+    difference = x_list - zh_y
+    results = torch.cat((results,  difference), dim=0)
+    save_images(results, path, nrow=11)
 
 if __name__ == "__main__":
     # torch.manual_seed(511)
