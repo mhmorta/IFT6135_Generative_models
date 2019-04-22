@@ -11,9 +11,9 @@ class Flatten(nn.Module):
         return input.view(input.size(0), -1)
 
 
-class UnFlatten(nn.Module):
-    def forward(self, input, size=512):
-        return input.view(input.size(0), size, 1, 1)
+class Flatten2(nn.Module):
+    def forward(self, input):
+        return input.view(input.size(0), 128 * 4, 4, 4)
 
 
 # source: https://discuss.pytorch.org/t/using-nn-function-interpolate-inside-nn-sequential/23588
@@ -53,8 +53,10 @@ class VAE(nn.Module):
         self.encoder_var = nn.Sequential(nn.Linear(in_features=2048, out_features=hidden_features),
                                          nn.Softplus())
 
+
         self.decoder = nn.Sequential(
-            nn.Linear(in_features=hidden_features, out_features=128 * 4 * 4 * 4),
+            nn.Linear(hidden_features, 128 * 4 * 4 * 4),
+            Flatten2(),
             nn.ConvTranspose2d(128 * 4, 64 * 4, 2, stride=2),
             nn.BatchNorm2d(64 * 4),
             nn.ELU(),
@@ -67,31 +69,6 @@ class VAE(nn.Module):
             nn.Conv2d(16 * 4, 3, 3, 1, 1),
             nn.Tanh()
         )
-
-            # nn.Tanh(),
-            # UnFlatten(),
-            # nn.Conv2d(512, 256, kernel_size=(5, 5), padding=(4, 4)),
-            # nn.BatchNorm2d(256),
-            # nn.Tanh(),
-            # Interpolate(scale_factor=2),
-            # nn.Conv2d(256, 64, kernel_size=(5, 5), padding=(4, 4)),
-            # nn.BatchNorm2d(64),
-            # nn.Tanh(),
-            # Interpolate(scale_factor=2),
-            # nn.Conv2d(64, 32, kernel_size=(3, 3), padding=(2, 2)),
-            # nn.BatchNorm2d(32),
-            # nn.Tanh(),
-            # nn.Conv2d(32, 3, kernel_size=(3, 3), padding=(2, 2)),
-            # nn.BatchNorm2d(3),
-            # nn.Tanh(),
-            # Flatten(),
-            # nn.Linear(in_features=3072, out_features=3072),
-            #
-            # # clip mean (-1, 1)
-            # nn.Tanh()
-
-
-        self.flatten = Flatten()
 
     def encode(self, x):
         h = self.encoder(x)
@@ -109,11 +86,9 @@ class VAE(nn.Module):
         return mu + eps * std
 
     def loss_function(self, x_decoded_mean, x, z_mean, z_var):
-
-        x_flatten = self.flatten(x)
-        x_decoded_mean = self.flatten(x_decoded_mean)
-        logp_xz = -F.mse_loss(x_flatten, x_decoded_mean, reduction="sum")
-
+        x_flatten = x.view(x.size(0), -1)
+        x_decoded_mean_flat = x_decoded_mean.view(x_decoded_mean.size(0), -1)
+        logp_xz = -F.mse_loss(x_flatten, x_decoded_mean_flat, reduction="sum")
         # KL divergence between prior of z (0, 1) and approximate posterior of z (z_mean, z_var)
         # see Appendix B from VAE paper:
         # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
@@ -127,20 +102,7 @@ class VAE(nn.Module):
         return -ELBO
 
     def decode(self, z):
-        #return self.decoder(z)
-        z = nn.Linear(in_features=100, out_features=128 * 4 * 4 * 4).forward(z)
-        z = z.view(-1, 128*4, 4, 4)
-        z = nn.ConvTranspose2d(128 * 4, 64 * 4, 2, stride=2).forward(z)
-        z = nn.BatchNorm2d(64 * 4).forward(z)
-        z = nn.ELU().forward(z)
-        z = nn.ConvTranspose2d(64 * 4, 32 * 4, 2, stride=2).forward(z)
-        z = nn.BatchNorm2d(32 * 4).forward(z)
-        z = nn.ELU().forward(z)
-        z = nn.ConvTranspose2d(32 * 4, 16 * 4, 2, stride=2).forward(z)
-        z = nn.BatchNorm2d(16 * 4).forward(z)
-        z = nn.ELU().forward(z)
-        z = nn.Conv2d(16 * 4, 3, 3, 1, 1).forward(z)
-        z = nn.Tanh().forward(z)
+        z = self.decoder(z)
         return z
 
     def forward(self, x):
