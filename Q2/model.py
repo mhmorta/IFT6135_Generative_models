@@ -81,8 +81,6 @@ class VAE(nn.Module):
     def loss_function(self, x, recon_x, mu, logvar):
         # E[log P(X|z)]
         # fidelity loss
-        # https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=608
-        # todo reduce_sum or reduce_mean? https://youtu.be/Hnns75GNUzs?list=PLdxQ7SoCLQANizknbIiHzL_hYjEaI-wUe&t=739
         logp_xz = -F.binary_cross_entropy(recon_x, x, reduction='sum')
 
         # Compute the divergence D_KL[q(z|x)||p(z)]
