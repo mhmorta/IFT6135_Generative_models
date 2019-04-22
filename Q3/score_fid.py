@@ -7,7 +7,7 @@ import classify_svhn
 import numpy as np
 from scipy import linalg
 from classify_svhn import Classifier
-import mpmath
+
 
 SVHN_PATH = "svhn"
 PROCESS_BATCH_SIZE = 32
@@ -89,17 +89,18 @@ def calculate_fid_score(sample_feature_iterator,
             break
         p.append(x)
 
-    q = np.array(q, dtype=np.float64)
-    p = np.array(p, dtype=np.float64)
+    q = np.array(q)
+    p = np.array(p)
 
     mu_p = np.mean(p, axis=0)
     mu_q = np.mean(q, axis=0)
     covar_p = np.cov(p, rowvar=False)
     covar_q = np.cov(q, rowvar=False)
-    A = covar_p.dot(covar_q)
-    print('calculating sqrtm of A')
-    B = mpmath.sqrtm(A)
-    d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(covar_p + covar_q - 2*B)
+    # suggestion by TAs
+    # 0.000001=45046.63810465513, 0.00001=45046.5777192188-1.1381158195782407e-17j, 0.0001=45046.27355412312
+    with_eps = 0.000001 * np.identity(covar_q.shape[0])
+    sqrtm = linalg.sqrtm(covar_p.dot(covar_q) + with_eps)
+    d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(covar_p + covar_q - 2*sqrtm)
 
     return d2
 
