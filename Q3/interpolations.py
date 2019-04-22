@@ -4,12 +4,15 @@ from torch import nn
 from torch.autograd import Variable
 from torchvision.utils import save_image
 
-from gan.models import Generator
+from gan.models_org import Generator
 from vae.model import VAE
 
 import argparse
 import os
 
+
+gan_path = './gan/results/models/best/gan_svhn_model.pt'
+vae_path = './vae/saved_model/params_epoch_24_loss_86.3193.pt'
 
 def make_interpolation(z, dim, eps=1):
     zh= z[0].clone().detach()
@@ -28,8 +31,7 @@ def GAN_disentangled_representation_experiment(device):
 
     G = Generator(channels=3, latent_dim=latent_dim, cuda=device).to(device)
 
-    saved_model = './gan/results/models/gan_svhn_model.pt'
-    G.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
+    G.load_state_dict(torch.load(gan_path, map_location=device), strict=False)
 
     dims = [0,20]
     outputs = []
@@ -56,8 +58,7 @@ def  GAN_interpolating_experiment(device):
 
     G = Generator(channels=3, latent_dim=latent_dim, cuda=device).to(device)
 
-    saved_model = './gan/results/models/gan_svhn_model.pt'
-    G.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
+    G.load_state_dict(torch.load(gan_path, map_location=device), strict=False)
 
     x_0 = Variable(G(z[0])).to(device)
     x_1 = Variable(G(z[1])).to(device)
@@ -96,8 +97,7 @@ def VAE_disentangled_representation_experiment(device):
     # G = Generator(channels=3, latent_dim=latent_dim, cuda=device).to(device)
     model = VAE(100).to(device)
 
-    saved_model = './vae/saved_model/params_epoch_24_loss_86.3193.pt'
-    model.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
+    model.load_state_dict(torch.load(vae_path, map_location=device), strict=False)
 
     # dims = [0,20,40,60,80]
     # dims = [0, 1, 2, 3]
@@ -134,9 +134,7 @@ def VAE_interpolating_experiment(device):
 
     model = VAE(100).to(device)
 
-    saved_model = './vae/saved_model/params_epoch_24_loss_86.3193.pt'
-    model.load_state_dict(torch.load(saved_model, map_location=device), strict=False)
-
+    model.load_state_dict(torch.load(vae_path, map_location=device), strict=False)
 
     x = Variable(model.generate(z)).to(device)
     x_0 = x[0]
@@ -173,10 +171,10 @@ if __name__ == "__main__":
     parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
     opt = parser.parse_args()
 
-    # GAN_disentangled_representation_experiment(device)
+    GAN_disentangled_representation_experiment(device)
     # GAN_interpolating_experiment(device)
-    VAE_disentangled_representation_experiment(device)
-    VAE_interpolating_experiment(device)
+    # VAE_disentangled_representation_experiment(device)
+    # VAE_interpolating_experiment(device)
 
     print('Done...')
 
