@@ -11,7 +11,7 @@ import argparse
 import os
 
 
-def make_interpolation(z, dim, eps=100):
+def make_interpolation(z, dim, eps=1):
     zh= z[0].clone().detach()
     zh[dim]= zh[dim]+ eps
     return zh
@@ -35,7 +35,7 @@ def GAN_disentangled_representation_experiment(device):
     outputs = []
     for d in dims:
         zh = make_interpolation(noise, dim=d)
-        output = Variable(G(noise)).to(device)
+        output = Variable(G(zh)).to(device)
         outputs.append(output)
 
     outputs = torch.cat(outputs, dim=0).view(len(dims),-1)
@@ -43,9 +43,13 @@ def GAN_disentangled_representation_experiment(device):
     path = 'gan/results/interpolated/GAN_disentangled_zs.png'
     save_images(outputs, path)
 
+    z_y = G(noise).view(1, -1)
+    path = 'gan/results/interpolated/GAN_disentangled_zs_difference.png'
+    save_images(outputs - z_y, path)
 
 
-def GAN_interpolating_experiment(device):
+
+def  GAN_interpolating_experiment(device):
     batch_size = 2
     latent_dim = 100
     z = Variable(torch.randn(batch_size, latent_dim)).to(device)
@@ -76,10 +80,12 @@ def GAN_interpolating_experiment(device):
     path = 'gan/results/interpolated/GAN_interpolated_xs.png'
     save_images(x_list, path)
 
+    difference  = torch.cat((x_list, zh_y), dim=0)
+    difference = difference.view(batch_size, -1)
+    sum_dif = torch.sum(torch.abs(difference), dim=1)
+
     path = 'gan/results/interpolated/GAN_interpolated_xs_zs.png'
-    save_images(torch.cat((x_list, zh_y), dim=0), path, nrow=2)
-
-
+    save_images(difference, path, nrow=2)
 
 
 def VAE_disentangled_representation_experiment(device):
@@ -98,14 +104,29 @@ def VAE_disentangled_representation_experiment(device):
     dims = range(0,100)
     outputs = []
     for d in dims:
-        zh = make_interpolation(noise, dim=d)
-        output = Variable(model.generate(noise)).to(device)
+        zh = make_interpolation(noise, dim=d).view(batch_size, latent_dim)
+        output = Variable(model.generate(zh)).to(device)
         outputs.append(output)
 
     outputs = torch.cat(outputs, dim=0).view(len(dims),-1)
 
     path = 'vae/results/interpolated/vae_disentangled_zs.png'
     save_images(outputs, path)
+
+    z_y = model.generate(noise).view(1, -1)
+    # path = 'vae/results/interpolated/vae_disentangled_zs_difference.png'
+    # save_images(outputs - z_y, path)
+
+    # difference = torch.cat((outputs, z_y), dim=0).view(batch_size, 3, 32, )
+    # difference = difference.view(batch_size, -1)
+    topk = 3
+    sum_dif = torch.sum(torch.abs(outputs - z_y), dim=1).detach().cpu().numpy()
+    top_sum_diff = np.unravel_index(np.argsort(sum_dif, axis=None), sum_dif.shape)[0][-topk:]
+    top_k_images = Variable(outputs[top_sum_diff]).to(device)
+
+    torch.append(top_k_images, z_y)
+    path = 'vae/results/interpolated/vae_top_disentangleds.png'
+    save_images(torch.cat(top_k_images, z_y), path, nrow=1)
 
 def VAE_interpolating_experiment(device):
     batch_size = 2
