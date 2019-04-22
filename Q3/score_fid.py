@@ -7,7 +7,7 @@ import classify_svhn
 import numpy as np
 from scipy import linalg
 from classify_svhn import Classifier
-
+import mpmath
 
 SVHN_PATH = "svhn"
 PROCESS_BATCH_SIZE = 32
@@ -89,17 +89,17 @@ def calculate_fid_score(sample_feature_iterator,
             break
         p.append(x)
 
-    q = np.array(q)
-    p = np.array(p)
+    q = np.array(q, dtype=np.float64)
+    p = np.array(p, dtype=np.float64)
 
     mu_p = np.mean(p, axis=0)
     mu_q = np.mean(q, axis=0)
     covar_p = np.cov(p, rowvar=False)
     covar_q = np.cov(q, rowvar=False)
-    sqrtm = linalg.sqrtm(covar_p.dot(covar_q))
-    # this trick from https://github.com/mseitzer/pytorch-fid/blob/master/fid_score.py
-    sqrtm = sqrtm.real if np.iscomplexobj(sqrtm) else sqrtm
-    d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(covar_p + covar_q - 2*sqrtm)
+    A = covar_p.dot(covar_q)
+    print('calculating sqrtm of A')
+    B = mpmath.sqrtm(A)
+    d2 = (np.linalg.norm(mu_p - mu_q))**2 + np.trace(covar_p + covar_q - 2*B)
 
     return d2
 
