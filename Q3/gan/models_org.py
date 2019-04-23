@@ -69,26 +69,6 @@ def get_data_loader(dataset_location, batch_size):
     return trainloader, validloader, testloader
 
 
-class Flatten(nn.Module):
-    def forward(self, input):
-        return input.view(input.size(0), -1)
-
-
-class UnFlatten(nn.Module):
-    def forward(self, input, size=512):
-        return input.view(input.size(0), size, 1, 1)
-
-
-class Interpolate(nn.Module):
-    def __init__(self, scale_factor):
-        super(Interpolate, self).__init__()
-        self.interp = nn.functional.interpolate
-        self.scale_factor = scale_factor
-
-    def forward(self, x):
-        x = self.interp(x, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
-        return x
-
 class Generator(nn.Module):
     def __init__(self, channels, latent_dim, cuda):
         super(Generator, self).__init__()
@@ -114,17 +94,7 @@ class Generator(nn.Module):
             nn.Conv2d(16*4, channels, 3, 1, 1),
             nn.Tanh()
             )
-#         self.init_weights()
 
-    def init_weights(self):
-        for m in self.convTranspose:
-            if isinstance(m,nn.ConvTranspose2d):
-                nn.init.xavier_uniform_(m.weight)
-                m.bias.data.fill_(0.01)
-
-        if type(self.mlp) == nn.Linear:
-            nn.init.xavier_uniform_(self.mlp.weight)
-            self.mlp.bias.data.fill_(0.01)
 
     def forward(self, input):
         x = self.mlp(input)
@@ -161,17 +131,6 @@ class Discriminator(nn.Module):
             nn.ReLU(),
             nn.Linear(500,1)
             )
-
-#        self.init_weights()
-    def init_weights(self):
-        for m in self.conv:
-            if isinstance(m,nn.Conv2d):
-                nn.init.xavier_uniform_(m.weight)
-                m.bias.data.fill_(0.01)
-
-        if type(self.mlp) == nn.Linear:
-            nn.init.xavier_uniform_(self.mlp.weight)
-            self.mlp.bias.data.fill_(0.01)
 
     def forward(self, input):
         x = self.conv(input)
